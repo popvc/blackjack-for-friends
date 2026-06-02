@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import jwt from "jsonwebtoken"
-import { ENV } from "./env";
+import { ENV } from "../config/env";
 
 export const generateToken = (userId: number, res: Response) => {
   const { JWT_SECRET } = ENV;

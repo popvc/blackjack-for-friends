@@ -1,6 +1,6 @@
 import { SQL } from "bun";
 
-import { ENV } from "./env";
+import { ENV } from "../config/env";
 
 const pg = new SQL({
   url: ENV.POSTGRESQL_URI,
@@ -19,9 +19,9 @@ const pg = new SQL({
 export const connectDB = async () => {
   try {
     const conn = await pg.connect();
-    console.log("PostgreSQL connecting: ", conn.options.hostname);
+    console.log("PostgreSQL connecting to: ", conn.options.hostname);
   } catch (error) {
-    console.error("Failed to connect to DB, error: ", error);
+    console.error("Failed to connect to DB: error: ", error);
     process.exit(1);
   }
 };

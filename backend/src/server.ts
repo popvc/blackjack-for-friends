@@ -5,8 +5,8 @@ import express from "express";
 import cors from "cors";
 
 import router from "./routes/auth.route";
-import { ENV } from "../lib/env";
-import { CORS } from "../lib/cors";
+import { ENV } from "../config/env";
+import { CORS } from "../config/cors";
 import { connectDB } from "../lib/db";
 
 const app = express();

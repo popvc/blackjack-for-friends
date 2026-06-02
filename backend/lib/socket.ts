@@ -2,7 +2,7 @@ import { Server as Engine } from "@socket.io/bun-engine"
 import { Server } from "socket.io"
 import express from "express";
 import type { Request, Response} from "express"
-import { CORS } from "./cors";
+import { CORS } from "../config/cors";
 
 //packet-buffering - voltaile events
 //heartbeat
