@@ -6,4 +6,5 @@ export const test = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error in test");
   }
-};
+}
+  
