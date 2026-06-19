@@ -48,7 +48,7 @@ export async function verifyToken(token: any): Promise<string | null> {
     const user = await Profile.findOne({ userId: decoded.userId }).select("-password");
     if (!user) return null;
 
-    return user.id;
+    return user.userId;
   } catch (e: any) {
     throw `Failed to verify token: ${e.message}`;
   }
