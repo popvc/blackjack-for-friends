@@ -1,12 +1,15 @@
 import type { Request, Response } from "express";
 
-import { ENV } from "../config/env";
 import z from "zod";
 import Profile from "../models/profile.schema";
 import bcrypt from "bcryptjs";
-import { expireToken, generateAuthToken } from "../config/authToken";
-import type mongoose from "mongoose";
-import type { HydratedDocument } from "mongoose";
+import {
+  expireToken,
+  generateAuthToken,
+  verifyToken,
+  type TokenPayload,
+} from "../config/authToken";
+import { customAlphabet, nanoid } from "nanoid";
 
 // Lowercase, a-z, 0-9, underscores. No consecutive, leading or trailing underscores.
 const VALID_USERNAME_REGEX = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
@@ -34,19 +37,28 @@ async function hashPassword(password: string): Promise<string> {
   return hashedPassword;
 }
 
+function generateUserId(): string {
+  const nanoid = customAlphabet("1234567890", 20);
+  return nanoid();
+}
+
 async function checkCredentials(email: string, password: string): Promise<string | null> {
-  const profile = await Profile.findOne({ email });
+  try {
+    const profile = await Profile.findOne({ email });
 
-  if (!profile || !profile.password) {
+    if (!profile || !profile.password) {
+      return null;
+    }
+
+    //return await bcrypt.compare(password, profile.password);
+    if (await bcrypt.compare(password, profile.password)) {
+      return profile.userId;
+    }
+
     return null;
+  } catch (e: any) {
+    throw `Failed to authenticate credentials:${e.message}`;
   }
-
-  //return await bcrypt.compare(password, profile.password);
-  if (await bcrypt.compare(password, profile.password)) {
-    return profile._id.toString();
-  }
-
-  return null;
 }
 
 const CreateProfile = z.object({
@@ -105,74 +117,75 @@ export const signup = async (req: Request, res: Response) => {
     console.log("password", password);
 
     const hashedPassword = await hashPassword(password);
+    const userId = generateUserId();
 
     console.log("hashedPassword", hashedPassword);
 
-    const garbage = " somethingasdfsdafa";
-    const aNumber = 123123123;
-
     //should I not just use create?
-
-    //there's got to be a better way of doing this...
-    const newProfile =
-      new Profile({
-
-      });
-
-    console.log("profile", newProfile);
+    //await Profile.create({username, email, password: hashedPassword})
+    //Why isn't there strict type checking for the input object?
+    const newProfile = new Profile({
+      userId,
+      username,
+      email,
+      password: hashedPassword,
+    });
 
     await newProfile.save();
 
-    /*
-    await Profile.create({username, email, password: hashedPassword})
-    */
-
     res.status(201).json({
       message: "New profile successfully created",
-      profile: { username: username, email: email },
+      profile: { userId, username: username, email: email },
     });
   } catch (e) {
     //will need proper logging system eventually
-    console.log("Controller signup error: ", e);
+    console.log("Controller signup error:", e);
     res.status(500).json({ message: "Internal server error!" });
   }
 };
 
+//if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
 //login
 export const login = async (req: Request, res: Response) => {
-  const result = LoginProfile.safeParse(req.body);
-
-  if (!result.success) {
-    return res.status(400).json({
-      message: "Login failed!",
-      errors: result.error.issues.map((issue) => {
-        return { detail: issue.message, pointer: issue.path[0] };
-      }),
-    });
-  }
-
-  const { email, password } = result.data;
+  const checkToken = req.cookies.jwt;
 
   try {
+    const result = LoginProfile.safeParse(req.body);
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: "Login failed!",
+        errors: result.error.issues.map((issue) => {
+          return { detail: issue.message, pointer: issue.path[0] };
+        }),
+      });
+    }
+
+    const { email, password } = result.data;
     const userId = await checkCredentials(email, password);
+
+    //if user has non-expired token, prevents unnecssary DB pings
+    if (checkToken && userId) {
+      return res.status(200).json({ message: "Logged in", profile: { userId } });
+    }
+
     if (!userId) return res.status(400).json({ message: "Invalid credentials" });
 
-    res = generateAuthToken(userId, res);
+    const payload: TokenPayload = { userId };
+    res = generateAuthToken(payload, res);
 
     res.status(200).json({
-      message: "Login successful",
-      profile: {
-        email: email,
-      },
+      message: "Logged in",
+      profile: { userId },
     });
   } catch (e) {
-    console.error("Controller login error: ", e);
+    console.error("Controller login error:", e);
     res.status(500).json({ message: "Internal server error!" });
   }
 };
 
 //logout
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (_: Request, res: Response) => {
   res = expireToken(res);
-  res.status(200).json({ message: "Log out successful" });
+  res.status(200).json({ message: "Signed out" });
 };
