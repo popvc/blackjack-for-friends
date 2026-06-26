@@ -1,18 +1,31 @@
-import { APITester } from "./APITester";
-import "./index.css";
+import { useState } from "react";
+import "./style.css";
 
-import logo from "./logo.svg";
-import reactLogo from "./react.svg";
+function App() {
+  const [count, setCount] = useState(0);
 
-export function App() {
   return (
-    <div className="app">
-      <h1>Bun + React</h1>
-      <p>
-        Edit <code>src/App.tsx</code> and save to test HMR
-      </p>
-      {/*<APITester />*/}
-    </div>
+    <>
+      <section id="center">
+        <div className="hero"></div>
+        <div>
+          <h1>Get started!!</h1>
+          <button className="btn">Button</button>
+          <p>
+            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary w-64 rounded-full"
+          onClick={() => setCount((count) => count + 1)}
+        >
+          Count is {count}
+        </button>
+      </section>
+
+      <section id="spacer"></section>
+    </>
   );
 }
 

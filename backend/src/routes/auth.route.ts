@@ -1,5 +1,4 @@
 import express, { type Request, type Response } from "express";
-import { test } from "../controllers/test.controller";
 import { login, logout, signup } from "../controllers/auth.controller";
 import { protectRoute } from "../middleware/auth.middleware";
 
