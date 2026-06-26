@@ -35,3 +35,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # ignore for now
 Architecture-Notes.txt
+
+# additional
+CLAUDE.local.md
+.claude
