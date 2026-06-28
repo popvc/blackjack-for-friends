@@ -47,8 +47,8 @@ async function checkCredentials(email: string, password: string): Promise<string
     }
 
     return null;
-  } catch (e: any) {
-    throw `Failed to authenticate credentials:${e.message}`;
+  } catch (e: unknown) {
+    throw `Failed to authenticate credentials:${e}`;
   }
 }
 

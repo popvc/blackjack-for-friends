@@ -49,7 +49,7 @@ export async function verifyToken(token: string): Promise<string | null> {
     if (!user) return null;
 
     return user.userId;
-  } catch (e: any) {
-    throw `Failed to verify token: ${e.message}`;
+  } catch (e: unknown) {
+    throw `Failed to verify token:${e}`;
   }
 }
