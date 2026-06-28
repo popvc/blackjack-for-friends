@@ -15,7 +15,7 @@ type AuthState = {
 
 const initialState = {
   authUserId: UNAUTHENTICATED,
-  isCheckingAuth: true,
+  isCheckingAuth: false,
   isSigningUp: false,
   isLoggingIn: false,
   isLoggingOut: false,
