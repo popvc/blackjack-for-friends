@@ -4,9 +4,7 @@ import Profile from "../models/profile.schema";
 import bcrypt from "bcryptjs";
 import { expireToken, generateAuthToken, type TokenPayload } from "../config/authToken";
 import { customAlphabet } from "nanoid";
-
-// Lowercase, a-z, 0-9, underscores. No consecutive, leading or trailing underscores.
-const VALID_USERNAME_REGEX = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
+import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
 
 async function uniqueEmail(email: string): Promise<boolean> {
   const profile = await Profile.findOne({ email });

@@ -10,6 +10,8 @@ router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", logout);
 //router.put("/update-profile", (req, res) => res.send("Placeholder /update-profile"));
-router.get("/check", protectRoute, (req: Request, res: Response) => res.status(200).json(req.userId));
+router.get("/check", protectRoute, (req: Request, res: Response) =>
+  res.status(200).json({ message: "Authenticated", profile: { userId: req.userId } }),
+);
 
 export default router;

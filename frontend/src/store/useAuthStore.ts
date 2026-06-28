@@ -1,7 +1,7 @@
 import axios from "axios";
 import { create } from "zustand";
 import { axiosInstance } from "../config/axios";
-import type { LoginData, SignupData } from "../types/auth";
+import type { AuthResponse, LoginData, SignupData } from "../types/auth";
 
 const UNAUTHENTICATED = null;
 
@@ -39,14 +39,15 @@ function handleAxiosError(error: unknown) {
   }
 }
 
+//seems like Tanstack Query does most of this, but better. I have a deadline, so I'll consider it another time
 export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
   ...initialState,
 
   resetState: () => set(initialState),
   checkAuth: async () => {
     try {
-      const res = await axiosInstance.get("/auth/check");
-      set({ authUserId: res.data });
+      const res = await axiosInstance.get<AuthResponse>("/auth/check");
+      set({ authUserId: res.data.profile.userId });
     } catch (e: unknown) {
       handleAxiosError(e);
 
@@ -58,8 +59,8 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
   signup: async (data: SignupData) => {
     set({ isSigningUp: true });
     try {
-      const res = await axiosInstance.post("/auth/signup", data);
-      set({ authUserId: res.data });
+      const res = await axiosInstance.post<AuthResponse>("/auth/signup", data);
+      set({ authUserId: res.data.profile.userId });
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
@@ -69,8 +70,8 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
   login: async (data: LoginData) => {
     set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post("/auth/login", data);
-      set({ authUserId: res.data });
+      const res = await axiosInstance.post<AuthResponse>("/auth/login", data);
+      set({ authUserId: res.data.profile.userId });
     } catch (e) {
       handleAxiosError(e);
     } finally {
