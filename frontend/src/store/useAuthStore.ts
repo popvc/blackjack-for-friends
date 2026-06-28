@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../config/axios";
 import type { LoginData, SignupData } from "../types/auth";
 
-const NO_AUTH = null;
+const UNAUTHENTICATED = null;
 
 type AuthState = {
   authUserId: string | null;
@@ -14,7 +14,7 @@ type AuthState = {
 }
 
 const initialState = {
-  authUserId: NO_AUTH,
+  authUserId: UNAUTHENTICATED,
   isCheckingAuth: true,
   isSigningUp: false,
   isLoggingIn: false,
@@ -37,7 +37,6 @@ function handleAxiosError(error: unknown) {
   } else {
     console.error(error);
   }
-  console.error(error);
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
@@ -51,7 +50,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
     } catch (e: unknown) {
       handleAxiosError(e);
 
-      set({ authUserId: NO_AUTH });
+      set({ authUserId: UNAUTHENTICATED });
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -82,7 +81,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
     set({ isLoggingOut: true });
     try {
       await axiosInstance.post("/auth/logout");
-      set({ authUserId: NO_AUTH });
+      set({ authUserId: UNAUTHENTICATED });
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {

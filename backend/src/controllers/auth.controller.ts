@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs";
 import { expireToken, generateAuthToken, type TokenPayload } from "../config/authToken";
 import { customAlphabet } from "nanoid";
 
+//TODO: Implement auto token generation on signin controller
+//TODO: created DTO response objets and standardize login and signup's response
+
 // Lowercase, a-z, 0-9, underscores. No consecutive, leading or trailing underscores.
 const VALID_USERNAME_REGEX = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
@@ -128,6 +131,7 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
+//login response is inconsistent with signup response
 //if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
 //login
 export const login = async (req: Request, res: Response) => {
