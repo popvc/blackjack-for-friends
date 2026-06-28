@@ -1,25 +1,10 @@
 import type { Request, Response } from "express";
 
-import z from "zod";
 import Profile from "../models/profile.schema";
 import bcrypt from "bcryptjs";
-import {
-  expireToken,
-  generateAuthToken,
-  verifyToken,
-  type TokenPayload,
-} from "../config/authToken";
-import { customAlphabet, nanoid } from "nanoid";
-
-// Lowercase, a-z, 0-9, underscores. No consecutive, leading or trailing underscores.
-const VALID_USERNAME_REGEX = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
-
-//Todo:
-//signup
-//signin
-//logout
-//update
-//authcheck
+import { expireToken, generateAuthToken, type TokenPayload } from "../config/authToken";
+import { customAlphabet } from "nanoid";
+import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
 
 async function uniqueEmail(email: string): Promise<boolean> {
   const profile = await Profile.findOne({ email });
@@ -61,32 +46,11 @@ async function checkCredentials(email: string, password: string): Promise<string
   }
 }
 
-const CreateProfile = z.object({
-  password: z.string().min(16).max(64),
-  username: z
-    .stringFormat("username", VALID_USERNAME_REGEX, {
-      error:
-        "Invalid input: Can only use lowercase a-z, 0-9 or underscore. No leading, trailing or consecutive underscores",
-    })
-    .min(6)
-    .max(36),
-  email: z.email().toLowerCase(),
-});
-
-const LoginProfile = z.object({
-  email: z.string(),
-  password: z.string(),
-});
-
-type CreateProfile = z.infer<typeof CreateProfile>;
-
-type LoginProfile = z.infer<typeof LoginProfile>;
-
 export const signup = async (req: Request, res: Response) => {
   //const createProfile: CreateProfile = req.body;
 
   try {
-    const result = CreateProfile.safeParse(req.body);
+    const result = CreateProfileDto.safeParse(req.body);
 
     //return properly formatted errors
     if (!result.success) {
@@ -114,12 +78,8 @@ export const signup = async (req: Request, res: Response) => {
       });
     }
 
-    console.log("password", password);
-
     const hashedPassword = await hashPassword(password);
     const userId = generateUserId();
-
-    console.log("hashedPassword", hashedPassword);
 
     //should I not just use create?
     //await Profile.create({username, email, password: hashedPassword})
@@ -150,7 +110,7 @@ export const login = async (req: Request, res: Response) => {
   const checkToken = req.cookies.jwt;
 
   try {
-    const result = LoginProfile.safeParse(req.body);
+    const result = LoginProfileDto.safeParse(req.body);
 
     if (!result.success) {
       return res.status(400).json({
@@ -164,12 +124,12 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = result.data;
     const userId = await checkCredentials(email, password);
 
-    //if user has non-expired token, prevents unnecssary DB pings
+    if (!userId) return res.status(400).json({ message: "Invalid credentials" });
+
+    //if user has non-expired token, prevents unnecessary token generation
     if (checkToken && userId) {
       return res.status(200).json({ message: "Logged in", profile: { userId } });
     }
-
-    if (!userId) return res.status(400).json({ message: "Invalid credentials" });
 
     const payload: TokenPayload = { userId };
     res = generateAuthToken(payload, res);

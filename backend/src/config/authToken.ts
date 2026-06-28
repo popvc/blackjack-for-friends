@@ -38,7 +38,7 @@ export function expireToken(res: Response): Response {
 }
 
 //verify token
-export async function verifyToken(token: any): Promise<string | null> {
+export async function verifyToken(token: string): Promise<string | null> {
   try {
     //no need to authenticate type, if it is decoded, this application must have encoded it
     const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;

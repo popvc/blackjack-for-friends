@@ -1,12 +1,20 @@
-import { axiosInstance } from "@/config/axios";
-import type { AxiosError } from "axios";
 import axios from "axios";
 import { create } from "zustand";
+import { axiosInstance } from "../config/axios";
+import type { LoginData, SignupData } from "../types/auth";
 
-const NO_USER = 0;
+const NO_AUTH = null;
+
+type AuthState = {
+  authUserId: string | null;
+  isCheckingAuth: boolean,
+  isSigningUp: boolean,
+  isLoggingIn: boolean,
+  isLoggingOut: boolean,
+}
 
 const initialState = {
-  authUserId: NO_USER,
+  authUserId: NO_AUTH,
   isCheckingAuth: true,
   isSigningUp: false,
   isLoggingIn: false,
@@ -14,11 +22,11 @@ const initialState = {
 };
 
 //these should have DTOs, or at least types that correspond with the backend
-type AuthState = typeof initialState & {
+type AuthActions = {
   resetState: () => void;
   checkAuth: () => Promise<void>;
-  signup: (data: any) => Promise<void>;
-  login: (data: any) => Promise<void>;
+  signup: (data: SignupData) => Promise<void>;
+  login: (data: LoginData) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -32,11 +40,10 @@ function handleAxiosError(error: unknown) {
   console.error(error);
 }
 
-export const useAuthStore = create<AuthState>()((set, get) => ({
+export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
   ...initialState,
 
   resetState: () => set(initialState),
-
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get("/auth/check");
@@ -44,12 +51,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     } catch (e: unknown) {
       handleAxiosError(e);
 
-      set({ authUserId: NO_USER });
+      set({ authUserId: NO_AUTH });
     } finally {
       set({ isCheckingAuth: false });
     }
   },
-  signup: async (data: any) => {
+  signup: async (data: SignupData) => {
     set({ isSigningUp: true });
     try {
       const res = await axiosInstance.post("/auth/signup", data);
@@ -60,7 +67,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       set({ isSigningUp: false });
     }
   },
-  login: async (data: any) => {
+  login: async (data: LoginData) => {
     set({ isLoggingIn: true });
     try {
       const res = await axiosInstance.post("/auth/login", data);
@@ -75,7 +82,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ isLoggingOut: true });
     try {
       await axiosInstance.post("/auth/logout");
-      set({ authUserId: NO_USER });
+      set({ authUserId: NO_AUTH });
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
