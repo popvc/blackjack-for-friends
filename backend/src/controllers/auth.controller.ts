@@ -1,13 +1,10 @@
 import type { Request, Response } from "express";
 
-import z from "zod";
 import Profile from "../models/profile.schema";
 import bcrypt from "bcryptjs";
 import { expireToken, generateAuthToken, type TokenPayload } from "../config/authToken";
 import { customAlphabet } from "nanoid";
-
-// Lowercase, a-z, 0-9, underscores. No consecutive, leading or trailing underscores.
-const VALID_USERNAME_REGEX = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
+import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
 
 async function uniqueEmail(email: string): Promise<boolean> {
   const profile = await Profile.findOne({ email });
@@ -49,32 +46,11 @@ async function checkCredentials(email: string, password: string): Promise<string
   }
 }
 
-const CreateProfile = z.object({
-  password: z.string().min(16).max(64),
-  username: z
-    .stringFormat("username", VALID_USERNAME_REGEX, {
-      error:
-        "Invalid input: Can only use lowercase a-z, 0-9 or underscore. No leading, trailing or consecutive underscores",
-    })
-    .min(6)
-    .max(36),
-  email: z.email().toLowerCase(),
-});
-
-const LoginProfile = z.object({
-  email: z.string(),
-  password: z.string(),
-});
-
-type CreateProfile = z.infer<typeof CreateProfile>;
-
-type LoginProfile = z.infer<typeof LoginProfile>;
-
 export const signup = async (req: Request, res: Response) => {
   //const createProfile: CreateProfile = req.body;
 
   try {
-    const result = CreateProfile.safeParse(req.body);
+    const result = CreateProfileDto.safeParse(req.body);
 
     //return properly formatted errors
     if (!result.success) {
@@ -134,7 +110,7 @@ export const login = async (req: Request, res: Response) => {
   const checkToken = req.cookies.jwt;
 
   try {
-    const result = LoginProfile.safeParse(req.body);
+    const result = LoginProfileDto.safeParse(req.body);
 
     if (!result.success) {
       return res.status(400).json({
