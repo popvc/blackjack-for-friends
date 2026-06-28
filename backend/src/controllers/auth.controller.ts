@@ -97,7 +97,7 @@ export const signup = async (req: Request, res: Response) => {
       message: "New profile successfully created",
       profile: { userId, username: username, email: email },
     });
-  } catch (e) {
+  } catch (e: unknown) {
     //will need proper logging system eventually
     console.log("Controller signup error:", e);
     res.status(500).json({ message: "Internal server error!" });
@@ -139,7 +139,7 @@ export const login = async (req: Request, res: Response) => {
       message: "Logged in",
       profile: { userId },
     });
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("Controller login error:", e);
     res.status(500).json({ message: "Internal server error!" });
   }

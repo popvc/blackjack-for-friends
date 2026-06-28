@@ -12,5 +12,6 @@
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
     "tsconfig.json": "tsconfig.*.json"
-  }
+  },
+  "css.customData": ["./.vscode/tailwind-css-data.json"]
 }

@@ -1,0 +1,37 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@plugin",
+      "description": "Loads a Tailwind CSS v4 plugin (e.g. DaisyUI)."
+    },
+    {
+      "name": "@theme",
+      "description": "Defines Tailwind CSS v4 theme variables and design tokens."
+    },
+    {
+      "name": "@apply",
+      "description": "Applies Tailwind utility classes inline within a CSS rule."
+    },
+    {
+      "name": "@source",
+      "description": "Specifies additional source files for Tailwind to scan for class usage."
+    },
+    {
+      "name": "@utility",
+      "description": "Defines a custom Tailwind CSS v4 utility class."
+    },
+    {
+      "name": "@variant",
+      "description": "Defines a custom Tailwind CSS v4 variant."
+    },
+    {
+      "name": "@custom-variant",
+      "description": "Defines a custom Tailwind CSS v4 variant with custom selector logic."
+    },
+    {
+      "name": "@config",
+      "description": "References a JavaScript Tailwind config file."
+    }
+  ]
+}
