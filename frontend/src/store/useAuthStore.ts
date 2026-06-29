@@ -9,16 +9,16 @@ type AuthState = {
   authUserId: string | null;
   isCheckingAuth: boolean,
   isSigningUp: boolean,
-  isLoggingIn: boolean,
-  isLoggingOut: boolean,
+  isSigningIn: boolean,
+  isSigningOut: boolean,
 }
 
 const initialState = {
   authUserId: UNAUTHENTICATED,
   isCheckingAuth: false,
   isSigningUp: false,
-  isLoggingIn: false,
-  isLoggingOut: false,
+  isSigningIn: false,
+  isSigningOut: false,
 };
 
 //these should have DTOs, or at least types that correspond with the backend
@@ -26,8 +26,8 @@ type AuthActions = {
   resetState: () => void;
   checkAuth: () => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
-  login: (data: LoginData) => Promise<void>;
-  logout: () => Promise<void>;
+  signin: (data: LoginData) => Promise<void>;
+  signout: () => Promise<void>;
 };
 
 //is this appropriate?
@@ -67,26 +67,26 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
       set({ isSigningUp: false });
     }
   },
-  login: async (data: LoginData) => {
-    set({ isLoggingIn: true });
+  signin: async (data: LoginData) => {
+    set({ isSigningIn: true });
     try {
-      const res = await axiosInstance.post<AuthResponse>("/auth/login", data);
+      const res = await axiosInstance.post<AuthResponse>("/auth/signin", data);
       set({ authUserId: res.data.profile.userId });
     } catch (e) {
       handleAxiosError(e);
     } finally {
-      set({ isLoggingIn: false });
+      set({ isSigningIn: false });
     }
   },
-  logout: async () => {
-    set({ isLoggingOut: true });
+  signout: async () => {
+    set({ isSigningOut: true });
     try {
-      await axiosInstance.post("/auth/logout");
+      await axiosInstance.post("/auth/signout");
       set({ authUserId: UNAUTHENTICATED });
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
-      set({ isLoggingOut: false });
+      set({ isSigningOut: false });
     }
   },
 }));

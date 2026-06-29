@@ -94,7 +94,7 @@ export const signup = async (req: Request, res: Response) => {
     await newProfile.save();
 
     res.status(201).json({
-      message: "New profile successfully created",
+      message: "New profile successfully created and signed i",
       profile: { userId, username: username, email: email },
     });
   } catch (e: unknown) {
@@ -107,7 +107,7 @@ export const signup = async (req: Request, res: Response) => {
 //login response is inconsistent with signup response
 //if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
 //login
-export const login = async (req: Request, res: Response) => {
+export const signin = async (req: Request, res: Response) => {
   const checkToken = req.cookies.jwt;
 
   try {
@@ -115,7 +115,7 @@ export const login = async (req: Request, res: Response) => {
 
     if (!result.success) {
       return res.status(400).json({
-        message: "Login failed!",
+        message: "Sign in failed!",
         errors: result.error.issues.map((issue) => {
           return { detail: issue.message, pointer: issue.path[0] };
         }),
@@ -129,24 +129,24 @@ export const login = async (req: Request, res: Response) => {
 
     //if user has non-expired token, prevents unnecessary token generation
     if (checkToken && userId) {
-      return res.status(200).json({ message: "Logged in", profile: { userId } });
+      return res.status(200).json({ message: "Signed in", profile: { userId } });
     }
 
     const payload: TokenPayload = { userId };
     res = generateAuthToken(payload, res);
 
     res.status(200).json({
-      message: "Logged in",
+      message: "Signed in",
       profile: { userId },
     });
   } catch (e: unknown) {
-    console.error("Controller login error:", e);
+    console.error("Controller signin error:", e);
     res.status(500).json({ message: "Internal server error!" });
   }
 };
 
 //logout
-export const logout = async (_: Request, res: Response) => {
+export const signout = async (_: Request, res: Response) => {
   res = expireToken(res);
   res.status(200).json({ message: "Signed out" });
 };

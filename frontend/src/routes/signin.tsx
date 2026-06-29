@@ -3,21 +3,21 @@ import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import type { LoginData } from "../types/auth";
 
-export const Route = createFileRoute("/login")({
-  component: LoginComponent,
+export const Route = createFileRoute("/signin")({
+  component: SigninComponent,
 });
 
-function LoginComponent() {
+function SigninComponent() {
   const [formData, setFormData] = useState<LoginData>({ email: "", password: "" });
-  const { login, isLoggingIn } = useAuthStore();
+  const { signin, isSigningIn } = useAuthStore();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  };  
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    login(formData)
+    signin(formData)
   }
 
   return (
@@ -57,9 +57,9 @@ function LoginComponent() {
             <button
               type="submit"
               className="btn btn-primary btn-block mt-2"
-              disabled={isLoggingIn}
+              disabled={isSigningIn}
             >
-              {isLoggingIn ? <span className="loading loading-spinner loading-sm" /> : "Sign in"}
+              {isSigningIn ? <span className="loading loading-spinner loading-sm" /> : "Sign in"}
             </button>
           </form>
 

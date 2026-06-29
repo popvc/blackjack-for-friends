@@ -7,7 +7,7 @@ export const Route = createFileRoute('/')({
 })
 
 function IndexComponent() {
-  const { checkAuth, logout, authUserId, isCheckingAuth, isLoggingOut } = useAuthStore()
+  const { checkAuth, signout, authUserId, isCheckingAuth, isSigningOut } = useAuthStore()
 
   useEffect(() => {
     checkAuth()
@@ -33,10 +33,10 @@ function IndexComponent() {
 
             <button
               className="btn btn-error btn-block"
-              onClick={logout}
-              disabled={isLoggingOut}
+              onClick={signout}
+              disabled={isSigningOut}
             >
-              {isLoggingOut ? <span className="loading loading-spinner loading-sm" /> : "Logout"}
+              {isSigningOut ? <span className="loading loading-spinner loading-sm" /> : "Logout"}
             </button>
           </div>
         </div>
