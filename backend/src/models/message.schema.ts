@@ -1,0 +1,25 @@
+import mongoose from "mongoose";
+
+//ids refer to user facing user ids not internal MongoDB document ids
+
+const messageSchema = new mongoose.Schema(
+  {
+    senderId: {
+      type: String,
+      required: true,
+    },
+    receipientId: {
+      type: String,
+      required: true,
+    },
+    text: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+    },
+    image: {
+      type: String,
+    },
+  },
+  { timestamps: true },
+);

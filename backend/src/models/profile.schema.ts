@@ -1,8 +1,9 @@
-import mongoose, { Document, type HydratedDocument } from "mongoose";
+import mongoose from "mongoose";
+
+//unique: true handles race conditions, if I really wanted efficiency I'd handle this as part of my signin controller step, but this works fine for now
 
 // ObjectId (_id) contains information about when it was created
-// If I decide this is an issue then it would be prudent to have a separate public facing profile id
-// NanoID, more user friendly id option
+// 20 character numeric id is more user friendly and doesn't provide this information, using userId now 
 const profileSchema = new mongoose.Schema(
   {
     userId: {

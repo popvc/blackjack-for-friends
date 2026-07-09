@@ -6,6 +6,9 @@ import { expireToken, generateAuthToken, type TokenPayload } from "../config/aut
 import { customAlphabet } from "nanoid";
 import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
 
+//TODO:
+//Login should return a list of chat partners
+
 async function uniqueEmail(email: string): Promise<boolean> {
   const profile = await Profile.findOne({ email });
   return profile ? false : true;

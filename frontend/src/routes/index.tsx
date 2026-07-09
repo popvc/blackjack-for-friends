@@ -36,7 +36,7 @@ function IndexComponent() {
               onClick={signout}
               disabled={isSigningOut}
             >
-              {isSigningOut ? <span className="loading loading-spinner loading-sm" /> : "Logout"}
+              {isSigningOut ? <span className="loading loading-spinner loading-sm" /> : "Sign out"}
             </button>
           </div>
         </div>
