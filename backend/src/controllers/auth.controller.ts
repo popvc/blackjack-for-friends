@@ -30,7 +30,7 @@ function generateUserId(): string {
   return nanoid();
 }
 
-async function checkCredentials(email: string, password: string): Promise<string | null> {
+async function checkCredentials(email: string, password: string): Promise<TokenPayload | null> {
   try {
     const profile = await Profile.findOne({ email });
 
@@ -40,7 +40,7 @@ async function checkCredentials(email: string, password: string): Promise<string
 
     //return await bcrypt.compare(password, profile.password);
     if (await bcrypt.compare(password, profile.password)) {
-      return profile.userId;
+      return {userId: profile.userId, username: profile.username, email: profile.email } as TokenPayload;
     }
 
     return null;
@@ -126,21 +126,23 @@ export const signin = async (req: Request, res: Response) => {
     }
 
     const { email, password } = result.data;
-    const userId = await checkCredentials(email, password);
+    const profile = await checkCredentials(email, password);
 
-    if (!userId) return res.status(400).json({ message: "Invalid credentials" });
+
+
+    if (!profile) return res.status(400).json({ message: "Invalid credentials" });
 
     //if user has non-expired token, prevents unnecessary token generation
-    if (checkToken && userId) {
-      return res.status(200).json({ message: "Signed in", profile: { userId } });
+    if (checkToken && profile) {
+      return res.status(200).json({ message: "Signed in", profile: profile });
     }
 
-    const payload: TokenPayload = { userId };
+    const payload: TokenPayload = profile;
     res = generateAuthToken(payload, res);
 
     res.status(200).json({
       message: "Signed in",
-      profile: { userId },
+      profile: profile,
     });
   } catch (e: unknown) {
     console.error("Controller signin error:", e);

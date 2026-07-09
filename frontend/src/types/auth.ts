@@ -11,8 +11,8 @@ export interface LoginData {
 
 export interface AuthProfile {
   userId: string;
-  username?: string;
-  email?: string;
+  username: string;
+  email: string;
 }
 
 export interface AuthResponse {

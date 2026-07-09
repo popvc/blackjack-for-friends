@@ -23,7 +23,6 @@ const initialState = {
 
 //these should have DTOs, or at least types that correspond with the backend
 type AuthActions = {
-  resetState: () => void;
   checkAuth: () => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   signin: (data: LoginData) => Promise<void>;
@@ -43,7 +42,6 @@ function handleAxiosError(error: unknown) {
 export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
   ...initialState,
 
-  resetState: () => set(initialState),
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get<AuthResponse>("/auth/check");

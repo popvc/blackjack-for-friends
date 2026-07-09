@@ -11,6 +11,8 @@ const TOKEN_NAME = "jwt";
 //Move this somewhere more appropriate later, also this accidentally overloads a "jsonwebtoken"
 export interface TokenPayload {
   userId: string;
+  username: string;
+  email: string;
 }
 
 //hypothetically, if an account is deleted but that account has a valid auth cookie for the account, what happens?
