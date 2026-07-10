@@ -17,7 +17,7 @@ export const CreateProfileDto = z.object({
 });
 
 export const LoginProfileDto = z.object({
-  email: z.string(),
+  email: z.email().toLowerCase(),
   password: z.string(),
 });
 

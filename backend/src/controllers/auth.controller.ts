@@ -40,7 +40,11 @@ async function checkCredentials(email: string, password: string): Promise<TokenP
 
     //return await bcrypt.compare(password, profile.password);
     if (await bcrypt.compare(password, profile.password)) {
-      return {userId: profile.userId, username: profile.username, email: profile.email } as TokenPayload;
+      return {
+        userId: profile.userId,
+        username: profile.username,
+        email: profile.email,
+      } as TokenPayload;
     }
 
     return null;
@@ -70,14 +74,14 @@ export const signup = async (req: Request, res: Response) => {
     if (!(await uniqueEmail(email))) {
       return res.status(400).json({
         message: "Failed to create new profile!",
-        errors: [{ detail: "Invalid input: must be unique, already in use", pointer: "email" }],
+        errors: [{ detail: "Invalid input: must be unique, already in use!", pointer: "email" }],
       });
     }
 
     if (!(await uniqueUsername(username))) {
       return res.status(400).json({
         message: "Failed to create new profile!",
-        errors: [{ detail: "Invalid input: must be unique, already in use", pointer: "username" }],
+        errors: [{ detail: "Invalid input: must be unique, already in use!", pointer: "username" }],
       });
     }
 
@@ -96,8 +100,11 @@ export const signup = async (req: Request, res: Response) => {
 
     await newProfile.save();
 
+    const payload: TokenPayload = { userId, username, email };
+    res = generateAuthToken(payload, res);
+
     res.status(201).json({
-      message: "New profile successfully created and signed i",
+      message: "New profile successfully created and signed in",
       profile: { userId, username: username, email: email },
     });
   } catch (e: unknown) {
@@ -128,9 +135,7 @@ export const signin = async (req: Request, res: Response) => {
     const { email, password } = result.data;
     const profile = await checkCredentials(email, password);
 
-
-
-    if (!profile) return res.status(400).json({ message: "Invalid credentials" });
+    if (!profile) return res.status(400).json({ message: "Invalid credentials!" });
 
     //if user has non-expired token, prevents unnecessary token generation
     if (checkToken && profile) {
