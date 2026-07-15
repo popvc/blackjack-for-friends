@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 
 //ids refer to user facing user ids not internal MongoDB document ids
 
+//needs better senderId, recipientId
+
 const messageSchema = new mongoose.Schema(
   {
     senderId: {

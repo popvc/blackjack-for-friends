@@ -1,12 +1,12 @@
 import axios from "axios";
 import { create } from "zustand";
 import { axiosInstance } from "../config/axios";
-import type { AuthResponse, LoginData, SignupData } from "../types/auth";
+import type { AuthResponse, AuthUser, LoginData, SignupData } from "../types/auth";
 
 const UNAUTHENTICATED = null;
 
 type AuthState = {
-  authUserId: string | null;
+  authUser: AuthUser | null;
   isCheckingAuth: boolean,
   isSigningUp: boolean,
   isSigningIn: boolean,
@@ -14,7 +14,7 @@ type AuthState = {
 }
 
 const initialState = {
-  authUserId: UNAUTHENTICATED,
+  authUser: UNAUTHENTICATED,
   isCheckingAuth: false,
   isSigningUp: false,
   isSigningIn: false,
@@ -45,11 +45,11 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get<AuthResponse>("/auth/check");
-      set({ authUserId: res.data.profile.userId });
+      set({ authUser: res.data.user });
     } catch (e: unknown) {
       handleAxiosError(e);
 
-      set({ authUserId: UNAUTHENTICATED });
+      set({ authUser: UNAUTHENTICATED });
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
     set({ isSigningUp: true });
     try {
       const res = await axiosInstance.post<AuthResponse>("/auth/signup", data);
-      set({ authUserId: res.data.profile.userId });
+      set({ authUser: res.data.user });
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
@@ -69,7 +69,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
     set({ isSigningIn: true });
     try {
       const res = await axiosInstance.post<AuthResponse>("/auth/signin", data);
-      set({ authUserId: res.data.profile.userId });
+      set({ authUser: res.data.user });
     } catch (e) {
       handleAxiosError(e);
     } finally {
@@ -80,7 +80,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
     set({ isSigningOut: true });
     try {
       await axiosInstance.post("/auth/signout");
-      set({ authUserId: UNAUTHENTICATED });
+      set({ authUser: UNAUTHENTICATED });
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {

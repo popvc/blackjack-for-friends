@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 
-import { verifyToken } from "../config/authToken";
+import { verifyToken, type AuthUser } from "../config/authToken";
 
 export const protectRoute = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -8,13 +8,13 @@ export const protectRoute = async (req: Request, res: Response, next: NextFuncti
     const token = req.cookies.jwt;
     if (!token) return res.status(401).json({ message: "Unauthorized: no token received" });
 
-    const userId = await verifyToken(token);
+    const user = await verifyToken(token);
 
-    if (!userId) {
+    if (!user) {
       return res.status(401).json({ message: "Unauthorized: invalid token" });
     }
 
-    req.userId = userId;
+    req.user = { userId: user.userId, username: user.username, email: user.email };
 
     next();
   } catch (error) {

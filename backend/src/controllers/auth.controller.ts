@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 
 import Profile from "../models/profile.schema";
 import bcrypt from "bcryptjs";
-import { expireToken, generateAuthToken, type TokenPayload } from "../config/authToken";
+import { expireToken, generateAuthToken, type AuthUser } from "../config/authToken";
 import { customAlphabet } from "nanoid";
 import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
 import { errorBody, zodErrorBody } from "../lib/responseMessage";
@@ -31,7 +31,7 @@ function generateUserId(): string {
   return nanoid();
 }
 
-async function checkCredentials(email: string, password: string): Promise<TokenPayload | null> {
+async function checkCredentials(email: string, password: string): Promise<AuthUser | null> {
   try {
     const profile = await Profile.findOne({ email });
 
@@ -45,7 +45,7 @@ async function checkCredentials(email: string, password: string): Promise<TokenP
         userId: profile.userId,
         username: profile.username,
         email: profile.email,
-      } as TokenPayload;
+      } as AuthUser;
     }
 
     return null;
@@ -108,12 +108,12 @@ export const signup = async (req: Request, res: Response) => {
 
     await newProfile.save();
 
-    const payload: TokenPayload = { userId, username, email };
+    const payload: AuthUser = { userId, username, email };
     res = generateAuthToken(payload, res);
 
     res.status(201).json({
       message: "New profile successfully created and signed in",
-      profile: { userId, username: username, email: email },
+      user: { userId, username: username, email: email },
     });
   } catch (e: unknown) {
     //will need proper logging system eventually
@@ -142,15 +142,15 @@ export const signin = async (req: Request, res: Response) => {
 
     //if user has non-expired token, prevents unnecessary token generation
     if (checkToken && profile) {
-      return res.status(200).json({ message: "Signed in", profile: profile });
+      return res.status(200).json({ message: "Signed in", user: profile });
     }
 
-    const payload: TokenPayload = profile;
+    const payload: AuthUser = profile;
     res = generateAuthToken(payload, res);
 
     res.status(200).json({
       message: "Signed in",
-      profile: profile,
+      user: profile,
     });
   } catch (e: unknown) {
     console.error("Controller signin error:", e);

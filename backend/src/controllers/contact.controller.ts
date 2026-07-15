@@ -31,24 +31,24 @@ async function alreadyAdded(userId: string, contactId: string): Promise<boolean>
 
 //looks for out going or ingoing request with other user, prevents users from filling up DB with duplicate requests
 async function duplicateRequest(userId: string, contactId: string): Promise<boolean> {
-  const duplicate = await ContactRequest.find({ senderId: userId, receipientId: contactId });
+  const duplicate = await ContactRequest.find({ senderId: userId, recipientId: contactId });
   return duplicate.length ? true : false;
 }
 
 //this needs transactions and push
 async function acceptIncomingRequest(userId: string, contactId: string): Promise<boolean> {
-  const accept = await ContactRequest.deleteOne({ senderId: contactId, receipientId: userId });
+  const accept = await ContactRequest.deleteOne({ senderId: contactId, recipientId: userId });
   return accept.deletedCount ? true : false;
 }
 
 //TODO (contacts):
 //players need contacts list field
 //need to search by player ID or name (exact match)
-//need to hold sent requests in own collection ContactRequests (id, time, sender, receipient)
+//need to hold sent requests in own collection ContactRequests (id, time, sender, recipient)
 //will display on both until resolved
 //users need to be able to accept or reject messages (determines whether deleted from db)
 
-//use web sockets to enable real-time status between two, optimist UI updates for sender and receipients
+//use web sockets to enable real-time status between two, optimist UI updates for sender and recipients
 
 //note: messaging is independent from whether someone is added as a contact or not
 
@@ -63,7 +63,7 @@ export const send = async (req: Request, res: Response) => {
     }
 
     const recipientId = result.data;
-    const { userId } = req;
+    const { userId } = req.user;
 
     if (userId === recipientId) {
       return res.status(400).json(
@@ -86,7 +86,7 @@ export const send = async (req: Request, res: Response) => {
     if (await alreadyAdded(userId, recipientId)) {
       return res.status(409).json(
         errorBody("Failed to send contact request!", {
-          detail: "Invalid input: receipient is already a contact",
+          detail: "Invalid input: recipient is already a contact",
           pointer: "params.id",
         }),
       );
@@ -134,7 +134,7 @@ export const accept = async (req: Request, res: Response) => {
   }
 
   const senderId = result.data;
-  const { userId } = req;
+  const { userId } = req.user;
 
   const acceptResult = await acceptIncomingRequest(userId, senderId);
 
@@ -151,7 +151,7 @@ export const accept = async (req: Request, res: Response) => {
     message: "Contact request accepted",
     request: {
       senderId: senderId,
-      receipientId: userId,
+      recipientId: userId,
     },
   });
 

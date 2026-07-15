@@ -11,7 +11,7 @@ router.post("/signin", signin);
 router.post("/signout", signout);
 //router.put("/update-profile", (req, res) => res.send("Placeholder /update-profile"));
 router.get("/check", protectRoute, (req: Request, res: Response) =>
-  res.status(200).json({ message: "Authenticated", profile: { userId: req.userId } }),
+  res.status(200).json({ message: "Authenticated", user: req.user }),
 );
 
 export default router;

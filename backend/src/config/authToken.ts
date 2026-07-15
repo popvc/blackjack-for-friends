@@ -8,8 +8,8 @@ const { JWT_SECRET, NODE_ENV } = ENV;
 const ONE_WEEK = "7d";
 const TOKEN_NAME = "jwt";
 
-//Move this somewhere more appropriate later, also this accidentally overloads a "jsonwebtoken"
-export interface TokenPayload {
+//Move this somewhere more appropriate later and give it a better name, UserInfo?
+export interface AuthUser {
   userId: string;
   username: string;
   email: string;
@@ -21,7 +21,7 @@ export interface TokenPayload {
 //if credentials need to be revoked and take effect immediately then a stateful or hybrid sytstem is required
 
 // Documentation allows effectively any object, prefering string over ObjectId for standardization
-export function generateAuthToken(payload: TokenPayload, res: Response): Response {
+export function generateAuthToken(payload: AuthUser, res: Response): Response {
   const token = jwt.sign(payload, JWT_SECRET, {
     expiresIn: ONE_WEEK,
   });
@@ -40,17 +40,17 @@ export function expireToken(res: Response): Response {
 }
 
 //verify token
-export async function verifyToken(token: string): Promise<string | null> {
+export async function verifyToken(token: string): Promise<AuthUser | null> {
   try {
     //no need to authenticate type, if it is decoded, this application must have encoded it
-    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
     if (!decoded) return null;
 
     //checks if user still exists
     const user = await Profile.findOne({ userId: decoded.userId }).select("-password");
     if (!user) return null;
 
-    return user.userId;
+    return decoded;
   } catch (e: unknown) {
     throw `Failed to verify token:${e}`;
   }

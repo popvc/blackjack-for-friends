@@ -7,11 +7,11 @@ export const Route = createFileRoute('/')({
 })
 
 function IndexComponent() {
-  const { checkAuth, signout, authUserId, isCheckingAuth, isSigningOut } = useAuthStore()
+  const { checkAuth, signout, authUser, isCheckingAuth, isSigningOut } = useAuthStore()
 
   useEffect(() => {
     checkAuth()
-  }, [])
+  }, [checkAuth])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -25,8 +25,8 @@ function IndexComponent() {
               <span className="text-sm text-base-content/60">User ID:</span>
               {isCheckingAuth
                 ? <span className="loading loading-spinner loading-sm" />
-                : authUserId !== null
-                  ? <span className="badge badge-success">{authUserId}</span>
+                : authUser !== null
+                  ? <span className="badge badge-success">{authUser.userId}</span>
                   : <span className="badge badge-error badge-soft">Not authenticated</span>
               }
             </div>

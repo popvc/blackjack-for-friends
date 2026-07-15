@@ -6,7 +6,7 @@ const contactRequestSchema = new mongoose.Schema(
     senderId: {
       type: String,
     },
-    receipientId: {
+    recipientId: {
       type: String,
     },
   },
