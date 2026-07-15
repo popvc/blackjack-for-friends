@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { expireToken, generateAuthToken, type TokenPayload } from "../config/authToken";
 import { customAlphabet } from "nanoid";
 import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
+import { errorBody, zodErrorBody } from "../lib/responseMessage";
 
 //TODO:
 //Login should return a list of chat partners
@@ -61,28 +62,35 @@ export const signup = async (req: Request, res: Response) => {
 
     //return properly formatted errors
     if (!result.success) {
-      return res.status(400).json({
-        message: "Failed to create new profile!",
-        errors: result.error.issues.map((issue) => {
-          return { detail: issue.message, pointer: issue.path[0] };
-        }),
-      });
+      return res
+        .status(400)
+        .json(zodErrorBody("Failed to create new profile!", result.error.issues));
     }
 
     const { username, email, password } = result.data;
 
     if (!(await uniqueEmail(email))) {
-      return res.status(400).json({
+      return res.status(409).json(
+        errorBody("Failed to create new profile!", {
+          detail: "Invalid input: must be unique, already in use!",
+          pointer: "email",
+        }),
+      );
+      /*
+      return res.status(409).json({
         message: "Failed to create new profile!",
         errors: [{ detail: "Invalid input: must be unique, already in use!", pointer: "email" }],
       });
+      */
     }
 
     if (!(await uniqueUsername(username))) {
-      return res.status(400).json({
-        message: "Failed to create new profile!",
-        errors: [{ detail: "Invalid input: must be unique, already in use!", pointer: "username" }],
-      });
+      return res.status(409).json(
+        errorBody("Failed to create new profile!", {
+          detail: "Invalid input: must be unique, already in use!",
+          pointer: "username",
+        }),
+      );
     }
 
     const hashedPassword = await hashPassword(password);
@@ -124,18 +132,13 @@ export const signin = async (req: Request, res: Response) => {
     const result = LoginProfileDto.safeParse(req.body);
 
     if (!result.success) {
-      return res.status(400).json({
-        message: "Sign in failed!",
-        errors: result.error.issues.map((issue) => {
-          return { detail: issue.message, pointer: issue.path[0] };
-        }),
-      });
+      return res.status(401).json(zodErrorBody("Sign in failed!", result.error.issues));
     }
 
     const { email, password } = result.data;
     const profile = await checkCredentials(email, password);
 
-    if (!profile) return res.status(400).json({ message: "Invalid credentials!" });
+    if (!profile) return res.status(401).json({ message: "Invalid credentials!" });
 
     //if user has non-expired token, prevents unnecessary token generation
     if (checkToken && profile) {
