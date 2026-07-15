@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 
 //needs better senderId, recipientId
 
+
+
 const messageSchema = new mongoose.Schema(
   {
     senderId: {
