@@ -4,23 +4,14 @@ import ContactRequest from "../models/contact.schema";
 import Profile from "../models/profile.schema";
 import { errorBody, zodErrorBody } from "../lib/responseMessage";
 
-//NOTICE: race conditions can likely be handled in the DB schema itself
-
-//WARNING: currently, these controllers do very little to account for race conditions
-
-//TODO: actually make functions for responses, current approach takes up too much space
-//TODO: setup postman to automatically handle a lot of these test cases, or better yet do them in bun tester
+//NOTE: messaging is independent from whether someone is added as a contact or not
 
 //TODO: 'send' needs to push to web socket
-//TODO: 'send' needs to account for race conditions (two users sending requests to one another simultaneously)
-
-//TODO: duplicateRequest needs to confirm there isn't an incoming request as well. This must be handled as part of a transaction to handle race conditions.
 
 //Is there a way to bundle these requests together and send them at once? The round trip cost here seems unnecessary
 
-//check if the desired contact id exists and if it's the same as user id
-async function contactExists(userId: string, contactId: string): Promise<boolean> {
-  const validId = await Profile.findOne({ userId });
+async function validId(contactId: string): Promise<boolean> {
+  const validId = await Profile.findOne({ userId: contactId });
   return validId ? true : false;
 }
 
@@ -29,30 +20,38 @@ async function alreadyAdded(userId: string, contactId: string): Promise<boolean>
   return contact ? true : false;
 }
 
-//looks for out going or ingoing request with other user, prevents users from filling up DB with duplicate requests
-async function duplicateRequest(userId: string, contactId: string): Promise<boolean> {
-  const duplicate = await ContactRequest.find({ senderId: userId, recipientId: contactId });
-  return duplicate.length ? true : false;
+//Checks for both incoming and outgoing requests with other user
+async function alreadyRequested(userId: string, contactId: string): Promise<boolean> {
+  const exists = await ContactRequest.findOne({
+    $or: [
+      { lowId: userId, highId: contactId },
+      { lowId: contactId, highId: userId },
+    ],
+  });
+  return exists ? true : false;
 }
 
 //this needs transactions and push
-async function acceptIncomingRequest(userId: string, contactId: string): Promise<boolean> {
-  const accept = await ContactRequest.deleteOne({ senderId: contactId, recipientId: userId });
+async function acceptIncomingRequest(recipientId: string, senderId: string): Promise<boolean> {
+  const accept = await ContactRequest.deleteOne({
+    $or: [
+      { lowId: recipientId, highId: senderId, senderId: senderId },
+      { lowId: senderId, highId: recipientId, senderId: senderId },
+    ],
+  });
   return accept.deletedCount ? true : false;
 }
 
-//TODO (contacts):
-//players need contacts list field
-//need to search by player ID or name (exact match)
-//need to hold sent requests in own collection ContactRequests (id, time, sender, recipient)
-//will display on both until resolved
-//users need to be able to accept or reject messages (determines whether deleted from db)
+async function addContacts(userId: string, contactId: string): Promise<void> {
+  await Promise.all([
+    Profile.findOneAndUpdate({ userId }, { $addToSet: { contactsId: contactId } }),
+    Profile.findOneAndUpdate({ userId: contactId }, { $addToSet: { contactsId: userId } }),
+  ]);
+}
 
 //use web sockets to enable real-time status between two, optimist UI updates for sender and recipients
 
-//note: messaging is independent from whether someone is added as a contact or not
-
-export const send = async (req: Request, res: Response) => {
+export const add = async (req: Request, res: Response) => {
   try {
     //this isn't parsing the body but :id in the URL
     //const result = AddContactDto.safeParse(req.body);
@@ -68,13 +67,19 @@ export const send = async (req: Request, res: Response) => {
     if (userId === recipientId) {
       return res.status(400).json(
         errorBody("Failed to send contact request!", {
-          detail: "Invalid input: contact sender cannot be recipient",
+          detail: "Invalid input: cannot send contact request to self",
           pointer: "params.id",
         }),
       );
     }
 
-    if (!(await contactExists(userId, recipientId))) {
+    const [valid, added, requested] = await Promise.all([
+      validId(recipientId),
+      alreadyAdded(userId, recipientId),
+      alreadyRequested(userId, recipientId),
+    ]);
+
+    if (!valid) {
       return res.status(404).json(
         errorBody("Failed to send contact request!", {
           detail: "Invalid input: contact id not found",
@@ -83,34 +88,35 @@ export const send = async (req: Request, res: Response) => {
       );
     }
 
-    if (await alreadyAdded(userId, recipientId)) {
+    if (added) {
       return res.status(409).json(
         errorBody("Failed to send contact request!", {
-          detail: "Invalid input: recipient is already a contact",
+          detail: "Invalid input: recipient is already added as a contact",
           pointer: "params.id",
         }),
       );
     }
 
-    if (await duplicateRequest(userId, recipientId)) {
+    if (requested) {
       return res.status(409).json(
         errorBody("Failed to send contact request!", {
-          detail: "Invalid input: duplicate outgoing add request to user",
+          detail: "Invalid input: contact request already exists between users",
           pointer: "params.id",
         }),
       );
     }
 
     const newContactRequest = new ContactRequest({
+      lowId: userId,
+      highId: recipientId,
       senderId: userId,
-      recipientId: recipientId,
     });
 
     await newContactRequest.save();
 
     res.status(201).json({
       message: "Contact request sent",
-      request: {
+      contactRequest: {
         senderId: userId,
         recipientId: recipientId,
       },
@@ -127,35 +133,45 @@ export const send = async (req: Request, res: Response) => {
 //accept (reject: deletes the request; accept: accept them to contact list then deletes the request)
 //could potentially just overload this functionality with add
 export const accept = async (req: Request, res: Response) => {
-  const result = AddContactDto.safeParse(req.params.id);
-
-  if (!result.success) {
-    return res.status(400).json(zodErrorBody("Failed to accept request!", result.error.issues));
-  }
-
-  const senderId = result.data;
-  const { userId } = req.user;
-
-  const acceptResult = await acceptIncomingRequest(userId, senderId);
-
-  if (!acceptResult) {
-    return res.status(404).json(
-      errorBody("Failed to accept contact!", {
-        detail: "Invalid input: no add request from user found",
-        pointer: "params.id",
-      }),
-    );
-  }
-
-  res.status(201).json({
-    message: "Contact request accepted",
-    request: {
-      senderId: senderId,
-      recipientId: userId,
-    },
-  });
-
   try {
+    const result = AddContactDto.safeParse(req.params.id);
+
+    if (!result.success) {
+      return res.status(400).json(zodErrorBody("Failed to accept request!", result.error.issues));
+    }
+
+    const senderId = result.data;
+    const { userId } = req.user;
+
+    if (userId === senderId) {
+      return res.status(400).json(
+        errorBody("Failed to accept contact request!", {
+          detail: "Invalid input: cannot accept request from self",
+          pointer: "params.id",
+        }),
+      );
+    }
+
+    const acceptResult = await acceptIncomingRequest(userId, senderId);
+
+    if (!acceptResult) {
+      return res.status(404).json(
+        errorBody("Failed to accept contact!", {
+          detail: "Invalid input: contact request from user not found",
+          pointer: "params.id",
+        }),
+      );
+    }
+
+    await addContacts(userId, senderId);
+
+    res.status(201).json({
+      message: "Contact request accepted",
+      request: {
+        senderId: senderId,
+        recipientId: userId,
+      },
+    });
   } catch (e: unknown) {
     console.log("Controller accept error:", e);
     res.status(500).json({ message: "Internal server error!" });

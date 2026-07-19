@@ -1,29 +1,5 @@
 import mongoose from "mongoose";
 
-//compound id to run unique on, prevents race conditions, theoretically
-
-//compound id{high, low}, sender
-
-// Its existance is proof there's currently a request, deleted on accept or reject
-/*
-const contactRequestSchema = new mongoose.Schema(
-  {
-    senderId: {
-      type: String,
-      required: true,
-    },
-    recipientId: {
-      type: String,
-      required: true,
-    },
-    compoundId: {
-      type: String,
-      unique: true,
-    },
-  },
-  { timestamps: true },
-);
-*/
 const contactRequestSchema = new mongoose.Schema(
   {
     lowId: {
@@ -34,13 +10,23 @@ const contactRequestSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    compoundId: {
+    senderId: {
       type: String,
-      unique: true,
+      required: true,
     },
   },
   { timestamps: true },
 );
+
+//lowId/highId are fixed-length (20 char) numeric strings, so lexicographic comparison
+//matches numeric order without the precision loss of converting through Number
+contactRequestSchema.pre(["validate"], function () {
+  if (this.lowId > this.highId) {
+    [this.lowId, this.highId] = [this.highId, this.lowId];
+  }
+});
+
+contactRequestSchema.index({ lowId: 1, highId: 1 }, { unique: true });
 
 const ContactRequest = mongoose.model("ContactRequest", contactRequestSchema);
 

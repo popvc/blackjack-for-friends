@@ -69,22 +69,21 @@ export const signup = async (req: Request, res: Response) => {
 
     const { username, email, password } = result.data;
 
-    if (!(await uniqueEmail(email))) {
+    const [usernameIsUnique, emailIsUnique] = await Promise.all([
+      uniqueEmail(email),
+      uniqueUsername(username),
+    ]);
+
+    if (!emailIsUnique) {
       return res.status(409).json(
         errorBody("Failed to create new profile!", {
           detail: "Invalid input: must be unique, already in use!",
           pointer: "email",
         }),
       );
-      /*
-      return res.status(409).json({
-        message: "Failed to create new profile!",
-        errors: [{ detail: "Invalid input: must be unique, already in use!", pointer: "email" }],
-      });
-      */
     }
 
-    if (!(await uniqueUsername(username))) {
+    if (!usernameIsUnique) {
       return res.status(409).json(
         errorBody("Failed to create new profile!", {
           detail: "Invalid input: must be unique, already in use!",
