@@ -3,10 +3,11 @@ import { AddContactDto } from "../dtos/contact.dto";
 import ContactRequest from "../models/contact.schema";
 import Profile from "../models/profile.schema";
 import { errorBody, zodErrorBody } from "../lib/responseMessage";
+import mongoose from "mongoose";
 
 //NOTE: messaging is independent from whether someone is added as a contact or not
 
-//TODO: 'send' needs to push to web socket
+//TODO: Socket push needs to be implemented for all endpoints
 
 //Is there a way to bundle these requests together and send them at once? The round trip cost here seems unnecessary
 
@@ -31,30 +32,59 @@ async function alreadyRequested(userId: string, contactId: string): Promise<bool
   return exists ? true : false;
 }
 
-//this needs transactions and push
-async function acceptIncomingRequest(recipientId: string, senderId: string): Promise<boolean> {
-  const accept = await ContactRequest.deleteOne({
-    $or: [
-      { lowId: recipientId, highId: senderId, senderId: senderId },
-      { lowId: senderId, highId: recipientId, senderId: senderId },
-    ],
-  });
-  return accept.deletedCount ? true : false;
+//this needs socket event push
+async function acceptIncomingRequest(
+  recipientId: string,
+  senderId: string,
+): Promise<boolean> {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+    const remove = await ContactRequest.deleteOne({
+      $or: [
+        { lowId: recipientId, highId: senderId, senderId: senderId },
+        { lowId: senderId, highId: recipientId, senderId: senderId },
+      ],
+    });
+
+    if (!remove.deletedCount) {
+      session.abortTransaction();
+      session.endSession();
+      return false;
+    }
+
+    const user = await Profile.findOneAndUpdate(
+      { userId: recipientId },
+      { $addToSet: { contactsId: senderId } },
+    );
+    const contact = await Profile.findOneAndUpdate(
+      { userId: senderId },
+      { $addToSet: { contactsId: recipientId } },
+    );
+
+    //hypothetically either user might not exist anymore if their account no longer exists
+    //this propably needs to be logged, as it means there's an orphaned contact request in the DB
+    if (!user || !contact) {
+      session.abortTransaction();
+      session.endSession();
+      //return AcceptRequestResult.FailedToUpdate;
+      throw new Error("User(s) not found/updated, request possibly orphaned")
+    }
+
+    session.commitTransaction();
+    session.endSession();
+    return true;
+
+    //is another try-catch here useful/necessary?
+  } catch (e: unknown) {
+    throw `Failed to accept contact request:${e}`;
+  }
 }
 
-async function addContacts(userId: string, contactId: string): Promise<void> {
-  await Promise.all([
-    Profile.findOneAndUpdate({ userId }, { $addToSet: { contactsId: contactId } }),
-    Profile.findOneAndUpdate({ userId: contactId }, { $addToSet: { contactsId: userId } }),
-  ]);
-}
-
-//use web sockets to enable real-time status between two, optimist UI updates for sender and recipients
-
+//use web sockets to enable real-time status between two, optimistic UI updates for sender and recipients
 export const add = async (req: Request, res: Response) => {
   try {
-    //this isn't parsing the body but :id in the URL
-    //const result = AddContactDto.safeParse(req.body);
     const result = AddContactDto.safeParse(req.params.id);
 
     if (!result.success) {
@@ -127,11 +157,6 @@ export const add = async (req: Request, res: Response) => {
   }
 };
 
-//find incoming request, then add to contacts and push
-
-//200 contact constraint on contact list: cannot send under this condition
-//accept (reject: deletes the request; accept: accept them to contact list then deletes the request)
-//could potentially just overload this functionality with add
 export const accept = async (req: Request, res: Response) => {
   try {
     const result = AddContactDto.safeParse(req.params.id);
@@ -155,15 +180,13 @@ export const accept = async (req: Request, res: Response) => {
     const acceptResult = await acceptIncomingRequest(userId, senderId);
 
     if (!acceptResult) {
-      return res.status(404).json(
+      return res.status(500).json(
         errorBody("Failed to accept contact!", {
           detail: "Invalid input: contact request from user not found",
           pointer: "params.id",
         }),
       );
     }
-
-    await addContacts(userId, senderId);
 
     res.status(201).json({
       message: "Contact request accepted",
@@ -178,13 +201,29 @@ export const accept = async (req: Request, res: Response) => {
   }
 };
 
+export const remove = async (req: Request, res: Response) => {
+  try {
+  } catch (e: unknown) {
+    console.log("Controller remove error:", e);
+    res.status(500).json({ message: "Internal server error!" });
+  }
+};
+
 //find outgoing or incoming requests and delete them, then push
 
-//reject (sender can do this as well to 'cancel' the request)
+//reject (sender can do this as well to 'cancel' the request). Though perhaps it would be better to redirect to a dedicated contact/cancel endpoint
 export const reject = async (req: Request, res: Response) => {
   try {
   } catch (e: unknown) {
     console.log("Controller reject error:", e);
+    res.status(500).json({ message: "Internal server error!" });
+  }
+};
+
+export const cancel = async (req: Request, res: Response) => {
+  try {
+  } catch (e: unknown) {
+    console.log("Controller cancel error:", e);
     res.status(500).json({ message: "Internal server error!" });
   }
 };

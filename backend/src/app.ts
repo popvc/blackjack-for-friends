@@ -15,6 +15,8 @@ const { PORT, NODE_ENV } = ENV;
 
 const app = express();
 
+//TODO: I'd like to simulate failures in DB mid-transaction to see if I'm missing anything
+
 //Going to need rate limiter rules to account for the number of DB pings an endpoint CAN ping
 
 //look into eslint
