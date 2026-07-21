@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+//lowId, highId and senderId could be fk references instead
+
 const contactRequestSchema = new mongoose.Schema(
   {
     lowId: {

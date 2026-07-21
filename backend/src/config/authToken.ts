@@ -52,6 +52,6 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
 
     return decoded;
   } catch (e: unknown) {
-    throw `Failed to verify token:${e}`;
+    throw new Error(`Failed to verify token`, { cause: e});
   }
 }

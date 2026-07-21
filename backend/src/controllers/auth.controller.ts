@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { expireToken, generateAuthToken, type AuthUser } from "../config/authToken";
 import { customAlphabet } from "nanoid";
 import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
-import { errorBody, zodErrorBody } from "../lib/responseMessage";
+import { errorBodyBody, zodErrorBodyBody } from "../lib/responseMessage";
 
 //TODO:
 //Login should return a list of chat partners
@@ -64,7 +64,7 @@ export const signup = async (req: Request, res: Response) => {
     if (!result.success) {
       return res
         .status(400)
-        .json(zodErrorBody("Failed to create new profile!", result.error.issues));
+        .json(zodErrorBodyBody("Failed to create new profile!", result.error.issues));
     }
 
     const { username, email, password } = result.data;
@@ -76,7 +76,7 @@ export const signup = async (req: Request, res: Response) => {
 
     if (!emailIsUnique) {
       return res.status(409).json(
-        errorBody("Failed to create new profile!", {
+        errorBodyBody("Failed to create new profile!", {
           detail: "Invalid input: must be unique, already in use!",
           pointer: "email",
         }),
@@ -85,7 +85,7 @@ export const signup = async (req: Request, res: Response) => {
 
     if (!usernameIsUnique) {
       return res.status(409).json(
-        errorBody("Failed to create new profile!", {
+        errorBodyBody("Failed to create new profile!", {
           detail: "Invalid input: must be unique, already in use!",
           pointer: "username",
         }),
@@ -131,7 +131,7 @@ export const signin = async (req: Request, res: Response) => {
     const result = LoginProfileDto.safeParse(req.body);
 
     if (!result.success) {
-      return res.status(401).json(zodErrorBody("Sign in failed!", result.error.issues));
+      return res.status(401).json(zodErrorBodyBody("Sign in failed!", result.error.issues));
     }
 
     const { email, password } = result.data;

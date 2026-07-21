@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 //ids refer to user facing user ids not internal MongoDB document ids
+//senderId/recipientId could be handled as reference instead
 
 //needs better senderId, recipientId
 

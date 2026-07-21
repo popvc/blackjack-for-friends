@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
-import { AddContactDto } from "../dtos/contact.dto";
+import { ContactIdDto } from "../dtos/contact.dto";
 import ContactRequest from "../models/contact.schema";
 import Profile from "../models/profile.schema";
-import { errorBody, zodErrorBody } from "../lib/responseMessage";
-import mongoose from "mongoose";
+import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
+import mongoose, { startSession } from "mongoose";
 
 //NOTE: messaging is independent from whether someone is added as a contact or not
 
@@ -21,22 +21,9 @@ async function alreadyAdded(userId: string, contactId: string): Promise<boolean>
   return contact ? true : false;
 }
 
-//Checks for both incoming and outgoing requests with other user
-async function alreadyRequested(userId: string, contactId: string): Promise<boolean> {
-  const exists = await ContactRequest.findOne({
-    $or: [
-      { lowId: userId, highId: contactId },
-      { lowId: contactId, highId: userId },
-    ],
-  });
-  return exists ? true : false;
-}
-
+//not really sure if I can break this down into smaller functions meaingfully
 //this needs socket event push
-async function acceptIncomingRequest(
-  recipientId: string,
-  senderId: string,
-): Promise<boolean> {
+async function acceptIncomingRequest(recipientId: string, senderId: string): Promise<boolean> {
   const session = await mongoose.startSession();
 
   try {
@@ -46,49 +33,59 @@ async function acceptIncomingRequest(
         { lowId: recipientId, highId: senderId, senderId: senderId },
         { lowId: senderId, highId: recipientId, senderId: senderId },
       ],
-    });
+    }).session(session);
 
     if (!remove.deletedCount) {
-      session.abortTransaction();
-      session.endSession();
+      await session.abortTransaction();
       return false;
     }
 
     const user = await Profile.findOneAndUpdate(
       { userId: recipientId },
       { $addToSet: { contactsId: senderId } },
-    );
+    ).session(session);
     const contact = await Profile.findOneAndUpdate(
       { userId: senderId },
       { $addToSet: { contactsId: recipientId } },
-    );
+    ).session(session);
 
     //hypothetically either user might not exist anymore if their account no longer exists
     //this propably needs to be logged, as it means there's an orphaned contact request in the DB
     if (!user || !contact) {
-      session.abortTransaction();
-      session.endSession();
-      //return AcceptRequestResult.FailedToUpdate;
-      throw new Error("User(s) not found/updated, request possibly orphaned")
+      //handled in catch
+      throw new Error("User(s) not found/updated, request possibly orphaned");
     }
 
-    session.commitTransaction();
-    session.endSession();
+    await session.commitTransaction();
     return true;
 
     //is another try-catch here useful/necessary?
   } catch (e: unknown) {
-    throw `Failed to accept contact request:${e}`;
+    await session.abortTransaction();
+    throw new Error(`Failed to accept contact request`, { cause: e });
+  } finally {
+    session.endSession();
   }
+}
+
+//findOneAndDelete on id in array, if successfully repeat for the contacts array. Must be atomic.
+async function removeContact() {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+  } catch (e: unknown) {}
 }
 
 //use web sockets to enable real-time status between two, optimistic UI updates for sender and recipients
 export const add = async (req: Request, res: Response) => {
   try {
-    const result = AddContactDto.safeParse(req.params.id);
+    const result = ContactIdDto.safeParse(req.params.id);
 
     if (!result.success) {
-      return res.status(400).json(zodErrorBody("Failed to send request!", result.error.issues));
+      return res
+        .status(400)
+        .json(zodErrorParamsBody("Failed to send request!", result.error.issues));
     }
 
     const recipientId = result.data;
@@ -96,42 +93,32 @@ export const add = async (req: Request, res: Response) => {
 
     if (userId === recipientId) {
       return res.status(400).json(
-        errorBody("Failed to send contact request!", {
+        errorParamsBody("Failed to send contact request!", {
           detail: "Invalid input: cannot send contact request to self",
-          pointer: "params.id",
+          pointer: "id",
         }),
       );
     }
 
-    const [valid, added, requested] = await Promise.all([
+    const [valid, added] = await Promise.all([
       validId(recipientId),
       alreadyAdded(userId, recipientId),
-      alreadyRequested(userId, recipientId),
     ]);
 
     if (!valid) {
       return res.status(404).json(
-        errorBody("Failed to send contact request!", {
+        errorParamsBody("Failed to send contact request!", {
           detail: "Invalid input: contact id not found",
-          pointer: "params.id",
+          pointer: "id",
         }),
       );
     }
 
     if (added) {
       return res.status(409).json(
-        errorBody("Failed to send contact request!", {
+        errorParamsBody("Failed to send contact request!", {
           detail: "Invalid input: recipient is already added as a contact",
-          pointer: "params.id",
-        }),
-      );
-    }
-
-    if (requested) {
-      return res.status(409).json(
-        errorBody("Failed to send contact request!", {
-          detail: "Invalid input: contact request already exists between users",
-          pointer: "params.id",
+          pointer: "id",
         }),
       );
     }
@@ -142,7 +129,19 @@ export const add = async (req: Request, res: Response) => {
       senderId: userId,
     });
 
-    await newContactRequest.save();
+    try {
+      await newContactRequest.save();
+    } catch (e: unknown) {
+      if (e instanceof mongoose.mongo.MongoServerError && e.code === 11000) {
+        return res.status(409).json(
+          errorParamsBody("Failed to send contact request!", {
+            detail: "Invalid input: contact request already exists between users",
+            pointer: "id",
+          }),
+        );
+      }
+      throw e;
+    }
 
     res.status(201).json({
       message: "Contact request sent",
@@ -159,10 +158,12 @@ export const add = async (req: Request, res: Response) => {
 
 export const accept = async (req: Request, res: Response) => {
   try {
-    const result = AddContactDto.safeParse(req.params.id);
+    const result = ContactIdDto.safeParse(req.params.id);
 
     if (!result.success) {
-      return res.status(400).json(zodErrorBody("Failed to accept request!", result.error.issues));
+      return res
+        .status(400)
+        .json(zodErrorParamsBody("Failed to accept request!", result.error.issues));
     }
 
     const senderId = result.data;
@@ -170,9 +171,9 @@ export const accept = async (req: Request, res: Response) => {
 
     if (userId === senderId) {
       return res.status(400).json(
-        errorBody("Failed to accept contact request!", {
+        errorParamsBody("Failed to accept contact request!", {
           detail: "Invalid input: cannot accept request from self",
-          pointer: "params.id",
+          pointer: "id",
         }),
       );
     }
@@ -180,10 +181,10 @@ export const accept = async (req: Request, res: Response) => {
     const acceptResult = await acceptIncomingRequest(userId, senderId);
 
     if (!acceptResult) {
-      return res.status(500).json(
-        errorBody("Failed to accept contact!", {
+      return res.status(404).json(
+        errorParamsBody("Failed to accept contact!", {
           detail: "Invalid input: contact request from user not found",
-          pointer: "params.id",
+          pointer: "id",
         }),
       );
     }
@@ -214,6 +215,25 @@ export const remove = async (req: Request, res: Response) => {
 //reject (sender can do this as well to 'cancel' the request). Though perhaps it would be better to redirect to a dedicated contact/cancel endpoint
 export const reject = async (req: Request, res: Response) => {
   try {
+    const result = ContactIdDto.safeParse(req.params.id);
+
+    if (!result.success) {
+      return res
+        .status(400)
+        .json(zodErrorParamsBody("Failed to reject request!", result.error.issues));
+    }
+
+    const senderId = result.data;
+    const { userId } = req.user;
+
+    if (userId === senderId) {
+      return res.status(400).json(
+        errorParamsBody("Failed to accept contact request!", {
+          detail: "Invalid input: cannot accept request from self",
+          pointer: "id",
+        }),
+      );
+    }
   } catch (e: unknown) {
     console.log("Controller reject error:", e);
     res.status(500).json({ message: "Internal server error!" });
