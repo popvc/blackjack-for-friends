@@ -1,16 +1,15 @@
 import express from "express";
+import contactRequestRoutes from "./contactRequest.route";
 import { protectRoute } from "../middleware/auth.middleware";
-import { accept,  list, reject, add, cancel } from "../controllers/contact.controller";
+import { remove } from "../controllers/contact.controller";
 
 const router = express.Router();
 
 router.use(protectRoute);
 
-router.post("/add/:id", add);
-router.post("/:id/accept", accept);
-router.post("/:id/reject", reject);
-router.post("/:id/cancel", cancel);
-router.post("/:id/remove", cancel);
-router.get("/list", list);
+//contact
+router.use("/request", contactRequestRoutes);
+router.post("/:id/remove", remove);
+//router.get("/list", list);
 
 export default router;

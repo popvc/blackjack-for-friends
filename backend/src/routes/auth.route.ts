@@ -9,7 +9,7 @@ const router = express.Router();
 router.post("/signup", signup);
 router.post("/signin", signin);
 router.post("/signout", signout);
-//router.put("/update-profile", (req, res) => res.send("Placeholder /update-profile"));
+//router.put("/update-profile", protectRoute, (req, res) => res.send("Placeholder /update-profile"));
 router.get("/check", protectRoute, (req: Request, res: Response) =>
   res.status(200).json({ message: "Authenticated", user: req.user }),
 );
