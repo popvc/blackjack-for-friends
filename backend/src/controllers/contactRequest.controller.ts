@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ContactIdDto } from "../dtos/contact.dto";
-import ContactRequest from "../models/contact.schema";
+import ContactRequest from "../models/contactRequest.schema";
 import Profile from "../models/profile.schema";
 import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
 import mongoose from "mongoose";
@@ -9,12 +9,12 @@ import mongoose from "mongoose";
 
 //Is there a way to bundle these requests together and send them at once? The round trip cost here seems unnecessary
 
-async function validId(contactId: string): Promise<boolean> {
-  const validId = await Profile.findOne({ userId: contactId });
-  return validId ? true : false;
+async function isValidId(contactId: string): Promise<boolean> {
+  const isValidId = await Profile.findOne({ userId: contactId });
+  return isValidId ? true : false;
 }
 
-async function alreadyAdded(userId: string, contactId: string): Promise<boolean> {
+async function isContactAdded(userId: string, contactId: string): Promise<boolean> {
   const contact = await Profile.findOne({ userId, contactsId: contactId });
   return contact ? true : false;
 }
@@ -78,8 +78,8 @@ export const send = async (req: Request, res: Response) => {
     }
 
     const [valid, added] = await Promise.all([
-      validId(recipientId),
-      alreadyAdded(userId, recipientId),
+      isValidId(recipientId),
+      isContactAdded(userId, recipientId),
     ]);
 
     if (!valid) {

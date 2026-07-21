@@ -6,7 +6,17 @@ import mongoose from "mongoose";
 
 // ObjectId (_id) contains information about when it was created
 // 20 character numeric id is more user friendly and doesn't provide this information, using userId now
-const profileSchema = new mongoose.Schema(
+export interface IProfile {
+  userId: string;
+  email: string;
+  username: string;
+  password: string;
+  contactsId: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const profileSchema = new mongoose.Schema<IProfile>(
   {
     userId: {
       type: String,
@@ -31,6 +41,7 @@ const profileSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-const Profile = mongoose.model("Profile", profileSchema);
+const Profile = mongoose.model<IProfile>("Profile", profileSchema);
 
+export type ProfileDocument = mongoose.HydratedDocument<IProfile>;
 export default Profile;

@@ -5,7 +5,16 @@ import mongoose from "mongoose";
 
 //needs better senderId, recipientId
 
-const messageSchema = new mongoose.Schema(
+export interface IMessage {
+  senderId: string;
+  recipientId: string;
+  text?: string;
+  image?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const messageSchema = new mongoose.Schema<IMessage>(
   {
     senderId: {
       type: String,

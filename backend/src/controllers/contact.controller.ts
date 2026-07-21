@@ -81,3 +81,11 @@ export const remove = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error!" });
   }
 };
+
+export const list = async (req: Request, res: Response) => {
+  try {
+  } catch (e: unknown) {
+    console.log("Controller request/list error:", e);
+    res.status(500).json({ message: "Internal server error!" });
+  }
+};

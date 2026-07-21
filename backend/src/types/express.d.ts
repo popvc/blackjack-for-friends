@@ -1,5 +1,4 @@
 import type { AuthUser } from "../config/authToken.ts";
-import {  Profile } from "../models/profile.schema.ts"
 
 declare global {
     namespace Express {

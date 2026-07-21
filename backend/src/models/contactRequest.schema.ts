@@ -2,7 +2,15 @@ import mongoose from "mongoose";
 
 //lowId, highId and senderId could be fk references instead
 
-const contactRequestSchema = new mongoose.Schema(
+export interface IContactRequest {
+  lowId: string;
+  highId: string;
+  senderId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const contactRequestSchema = new mongoose.Schema<IContactRequest>(
   {
     lowId: {
       type: String,
@@ -30,6 +38,7 @@ contactRequestSchema.pre(["validate"], function () {
 
 contactRequestSchema.index({ lowId: 1, highId: 1 }, { unique: true });
 
-const ContactRequest = mongoose.model("ContactRequest", contactRequestSchema);
+const ContactRequest = mongoose.model<IContactRequest>("ContactRequest", contactRequestSchema);
 
+export type ContactRequestDocument = mongoose.HydratedDocument<IContactRequest>;
 export default ContactRequest;

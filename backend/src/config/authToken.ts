@@ -2,18 +2,14 @@ import type { Response } from "express";
 import jwt from "jsonwebtoken";
 import { ENV } from "./env";
 import ms from "ms";
-import Profile from "../models/profile.schema";
+import Profile, { type IProfile } from "../models/profile.schema";
 
 const { JWT_SECRET, NODE_ENV } = ENV;
 const ONE_WEEK = "7d";
 const TOKEN_NAME = "jwt";
 
 //Move this somewhere more appropriate later and give it a better name, UserInfo?
-export interface AuthUser {
-  userId: string;
-  username: string;
-  email: string;
-}
+export type AuthUser = Pick<IProfile, "userId" | "username" | "email">;
 
 //hypothetically, if an account is deleted but that account has a valid auth cookie for the account, what happens?
 //Probably just a bunch of errors when the account isn't found, but should this be accounted for?
