@@ -1,4 +1,4 @@
-import { request, type Request, type Response } from "express";
+import { type Request, type Response } from "express";
 import { ContactIdDto } from "../dtos/contact.dto";
 import ContactRequest from "../models/contactRequest.schema";
 import Profile from "../models/profile.schema";
@@ -55,13 +55,27 @@ async function acceptIncomingRequest(recipientId: string, senderId: string): Pro
   }
 }
 
+async function deleteContactRequest(
+  userId: string,
+  otherId: string,
+  expectedSenderId: string,
+): Promise<boolean> {
+  const remove = await ContactRequest.deleteOne({
+    $or: [
+      { lowId: userId, highId: otherId, senderId: expectedSenderId },
+      { lowId: otherId, highId: userId, senderId: expectedSenderId },
+    ],
+  });
+
+  return remove.deletedCount > 0;
+}
+
 async function getContactRequests(
   userId: string,
 ): Promise<{ senderId: string; recipientId: string }[]> {
   const requests = await ContactRequest.find({
     $or: [{ lowId: userId }, { highId: userId }],
   }).lean();
-  console.log("getContactRequests", requests);
 
   //senderId is always one of lowId/highId; recipientId is whichever one it isn't
   return requests.map(({ lowId, highId, senderId }) => ({
@@ -194,9 +208,6 @@ export const accept = async (req: Request, res: Response) => {
   }
 };
 
-//find outgoing or incoming requests and delete them, then push
-
-//reject (sender can do this as well to 'cancel' the request). Though perhaps it would be better to redirect to a dedicated contact/cancel endpoint
 export const reject = async (req: Request, res: Response) => {
   try {
     const result = ContactIdDto.safeParse(req.params.id);
@@ -212,12 +223,31 @@ export const reject = async (req: Request, res: Response) => {
 
     if (userId === senderId) {
       return res.status(400).json(
-        errorParamsBody("Failed to accept contact request!", {
-          detail: "Invalid input: cannot accept request from self",
+        errorParamsBody("Failed to reject contact request!", {
+          detail: "Invalid input: cannot reject request from self",
           pointer: "id",
         }),
       );
     }
+
+    const deleted = await deleteContactRequest(userId, senderId, senderId);
+
+    if (!deleted) {
+      return res.status(404).json(
+        errorParamsBody("Failed to reject contact request!", {
+          detail: "Invalid input: contact request from user not found",
+          pointer: "id",
+        }),
+      );
+    }
+
+    res.status(200).json({
+      message: "Contact request rejected",
+      request: {
+        senderId: senderId,
+        recipientId: userId,
+      },
+    });
   } catch (e: unknown) {
     console.log("Controller reject error:", e);
     res.status(500).json({ message: "Internal server error!" });
@@ -226,6 +256,44 @@ export const reject = async (req: Request, res: Response) => {
 
 export const cancel = async (req: Request, res: Response) => {
   try {
+    const result = ContactIdDto.safeParse(req.params.id);
+
+    if (!result.success) {
+      return res
+        .status(400)
+        .json(zodErrorParamsBody("Failed to cancel request!", result.error.issues));
+    }
+
+    const recipientId = result.data;
+    const { userId } = req.user;
+
+    if (userId === recipientId) {
+      return res.status(400).json(
+        errorParamsBody("Failed to cancel contact request!", {
+          detail: "Invalid input: cannot cancel request to self",
+          pointer: "id",
+        }),
+      );
+    }
+
+    const deleted = await deleteContactRequest(userId, recipientId, userId);
+
+    if (!deleted) {
+      return res.status(404).json(
+        errorParamsBody("Failed to cancel contact request!", {
+          detail: "Invalid input: contact request to user not found",
+          pointer: "id",
+        }),
+      );
+    }
+
+    res.status(200).json({
+      message: "Contact request cancelled",
+      request: {
+        senderId: userId,
+        recipientId: recipientId,
+      },
+    });
   } catch (e: unknown) {
     console.log("Controller cancel error:", e);
     res.status(500).json({ message: "Internal server error!" });
@@ -241,7 +309,7 @@ export const list = async (req: Request, res: Response) => {
 
     res.status(200).json({
       message: "Contact requests retrieved",
-      requests,
+      requests: requests,
     });
   } catch (e: unknown) {
     console.log("Controller list error:", e);

@@ -36,6 +36,11 @@ async function removeContact(userId: string, contactId: string): Promise<boolean
   }
 }
 
+async function getContacts(userId: string): Promise<string[]> {
+  const profile = await Profile.findOne({ userId }).select("contactsId").lean();
+  return profile?.contactsId ?? [];
+}
+
 export const remove = async (req: Request, res: Response) => {
   try {
     const result = ContactIdDto.safeParse(req.params.id);
@@ -84,6 +89,14 @@ export const remove = async (req: Request, res: Response) => {
 
 export const list = async (req: Request, res: Response) => {
   try {
+    const { userId } = req.user;
+
+    const contacts = await getContacts(userId);
+
+    res.status(200).json({
+      message: "Contacts retrieved",
+      contacts,
+    });
   } catch (e: unknown) {
     console.log("Controller request/list error:", e);
     res.status(500).json({ message: "Internal server error!" });
