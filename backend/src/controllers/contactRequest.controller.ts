@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import { request, type Request, type Response } from "express";
 import { ContactIdDto } from "../dtos/contact.dto";
 import ContactRequest from "../models/contactRequest.schema";
 import Profile from "../models/profile.schema";
@@ -53,6 +53,21 @@ async function acceptIncomingRequest(recipientId: string, senderId: string): Pro
   } catch (e: unknown) {
     throw new Error(`Failed to accept contact request`, { cause: e });
   }
+}
+
+async function getContactRequests(
+  userId: string,
+): Promise<{ senderId: string; recipientId: string }[]> {
+  const requests = await ContactRequest.find({
+    $or: [{ lowId: userId }, { highId: userId }],
+  }).lean();
+  console.log("getContactRequests", requests);
+
+  //senderId is always one of lowId/highId; recipientId is whichever one it isn't
+  return requests.map(({ lowId, highId, senderId }) => ({
+    senderId,
+    recipientId: senderId === lowId ? highId : lowId,
+  }));
 }
 
 export const send = async (req: Request, res: Response) => {
@@ -220,6 +235,14 @@ export const cancel = async (req: Request, res: Response) => {
 //list (for contact requests sent or received) a list of currently added contacts should be handled on login to reduce unnecessary db pings, but that's only necessary on the client end
 export const list = async (req: Request, res: Response) => {
   try {
+    const { userId } = req.user;
+
+    const requests = await getContactRequests(userId);
+
+    res.status(200).json({
+      message: "Contact requests retrieved",
+      requests,
+    });
   } catch (e: unknown) {
     console.log("Controller list error:", e);
     res.status(500).json({ message: "Internal server error!" });
