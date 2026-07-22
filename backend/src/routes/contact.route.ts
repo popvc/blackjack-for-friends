@@ -1,6 +1,6 @@
 import express from "express";
 import contactRequestRoutes from "./contactRequest.route";
-import { protectRoute } from "../middleware/auth.middleware";
+import { protectRoute } from "../middleware/routeAuth.middleware";
 import { remove, list } from "../controllers/contact.controller";
 
 const router = express.Router();

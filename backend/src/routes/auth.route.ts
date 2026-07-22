@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express";
 import { signin, signout, signup } from "../controllers/auth.controller";
-import { protectRoute } from "../middleware/auth.middleware";
+import { protectRoute } from "../middleware/routeAuth.middleware";
 
 const router = express.Router();
 

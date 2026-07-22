@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 
-import { verifyToken, type AuthUser } from "../config/authToken";
+import { verifyToken } from "../config/authToken";
 
 export const protectRoute = async (req: Request, res: Response, next: NextFunction) => {
   try {

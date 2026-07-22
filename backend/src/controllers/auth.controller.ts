@@ -121,9 +121,7 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
-//login response is inconsistent with signup response
 //if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
-//login
 export const signin = async (req: Request, res: Response) => {
   const checkToken = req.cookies.jwt;
 
@@ -157,7 +155,6 @@ export const signin = async (req: Request, res: Response) => {
   }
 };
 
-//logout
 export const signout = async (_: Request, res: Response) => {
   res = expireToken(res);
   res.status(200).json({ message: "Signed out" });
