@@ -34,17 +34,19 @@ export function expireToken(res: Response): Response {
 
 //verify token
 export async function verifyToken(token: string): Promise<AuthUser | null> {
+  //no need to authenticate type, if it is successfully decoded, this application must have encoded it
+  let decoded: AuthUser;
   try {
-    //no need to authenticate type, if it is successfully decoded, this application must have encoded it
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
-    if (!decoded) return null;
-
-    //checks if user still exists
-    const user = await Profile.findOne({ userId: decoded.userId }).select("-password");
-    if (!user) return null;
-
-    return decoded;
-  } catch (e: unknown) {
-    throw new Error(`Failed to verify token`, { cause: e});
+    decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
+  } catch {
+    return null;
   }
+
+  if (!decoded) return null;
+
+  //checks if user still exists
+  const user = await Profile.findOne({ userId: decoded.userId }).select("-password");
+  if (!user) return null;
+
+  return decoded;
 }

@@ -57,102 +57,91 @@ async function checkCredentials(email: string, password: string): Promise<AuthUs
 export const signup = async (req: Request, res: Response) => {
   //const createProfile: CreateProfile = req.body;
 
-  try {
-    const result = CreateProfileDto.safeParse(req.body);
+  const result = CreateProfileDto.safeParse(req.body);
 
-    //return properly formatted errors
-    if (!result.success) {
-      return res
-        .status(400)
-        .json(zodErrorBodyBody("Failed to create new profile!", result.error.issues));
-    }
-
-    const { username, email, password } = result.data;
-
-    const [usernameIsUnique, emailIsUnique] = await Promise.all([
-      uniqueEmail(email),
-      uniqueUsername(username),
-    ]);
-
-    if (!emailIsUnique) {
-      return res.status(409).json(
-        errorBodyBody("Failed to create new profile!", {
-          detail: "Invalid input: must be unique, already in use!",
-          pointer: "email",
-        }),
-      );
-    }
-
-    if (!usernameIsUnique) {
-      return res.status(409).json(
-        errorBodyBody("Failed to create new profile!", {
-          detail: "Invalid input: must be unique, already in use!",
-          pointer: "username",
-        }),
-      );
-    }
-
-    const hashedPassword = await hashPassword(password);
-    const userId = generateUserId();
-
-    //should I not just use create?
-    //await Profile.create({username, email, password: hashedPassword})
-    //Why isn't there strict type checking for the input object?
-    const newProfile = new Profile({
-      userId,
-      username,
-      email,
-      password: hashedPassword,
-    });
-
-    await newProfile.save();
-
-    const payload: AuthUser = { userId, username, email };
-    res = generateAuthToken(payload, res);
-
-    res.status(201).json({
-      message: "New profile successfully created and signed in",
-      user: { userId, username: username, email: email },
-    });
-  } catch (e: unknown) {
-    //will need proper logging system eventually
-    console.log("Controller signup error:", e);
-    res.status(500).json({ message: "Internal server error!" });
+  //return properly formatted errors
+  if (!result.success) {
+    return res
+      .status(400)
+      .json(zodErrorBodyBody("Failed to create new profile!", result.error.issues));
   }
+
+  const { username, email, password } = result.data;
+
+  const [usernameIsUnique, emailIsUnique] = await Promise.all([
+    uniqueEmail(email),
+    uniqueUsername(username),
+  ]);
+
+  if (!emailIsUnique) {
+    return res.status(409).json(
+      errorBodyBody("Failed to create new profile!", {
+        detail: "Invalid input: must be unique, already in use!",
+        pointer: "email",
+      }),
+    );
+  }
+
+  if (!usernameIsUnique) {
+    return res.status(409).json(
+      errorBodyBody("Failed to create new profile!", {
+        detail: "Invalid input: must be unique, already in use!",
+        pointer: "username",
+      }),
+    );
+  }
+
+  const hashedPassword = await hashPassword(password);
+  const userId = generateUserId();
+
+  //should I not just use create?
+  //await Profile.create({username, email, password: hashedPassword})
+  //Why isn't there strict type checking for the input object?
+  const newProfile = new Profile({
+    userId,
+    username,
+    email,
+    password: hashedPassword,
+  });
+
+  await newProfile.save();
+
+  const payload: AuthUser = { userId, username, email };
+  res = generateAuthToken(payload, res);
+
+  res.status(201).json({
+    message: "New profile successfully created and signed in",
+    user: { userId, username: username, email: email },
+  });
 };
 
 //if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
 export const signin = async (req: Request, res: Response) => {
   const checkToken = req.cookies.jwt;
 
-  try {
-    const result = LoginProfileDto.safeParse(req.body);
+  const result = LoginProfileDto.safeParse(req.body);
 
-    if (!result.success) {
-      return res.status(401).json(zodErrorBodyBody("Sign in failed!", result.error.issues));
-    }
-
-    const { email, password } = result.data;
-    const profile = await checkCredentials(email, password);
-
-    if (!profile) return res.status(401).json({ message: "Invalid credentials!" });
-
-    //if user has non-expired token, prevents unnecessary token generation
-    if (checkToken && profile) {
-      return res.status(200).json({ message: "Signed in", user: profile });
-    }
-
-    const payload: AuthUser = profile;
-    res = generateAuthToken(payload, res);
-
-    res.status(200).json({
-      message: "Signed in",
-      user: profile,
-    });
-  } catch (e: unknown) {
-    console.error("Controller signin error:", e);
-    res.status(500).json({ message: "Internal server error!" });
+  if (!result.success) {
+    return res.status(401).json(zodErrorBodyBody("Sign in failed!", result.error.issues));
   }
+
+  const { email, password } = result.data;
+  const profile = await checkCredentials(email, password);
+
+  if (!profile) return res.status(401).json({ message: "Invalid credentials!" });
+
+  //if user has non-expired token, prevents unnecessary token generation
+  if (checkToken && profile) {
+    return res.status(200).json({ message: "Signed in", user: profile });
+  }
+
+  const payload: AuthUser = profile;
+  res = generateAuthToken(payload, res);
+
+  res.status(200).json({
+    message: "Signed in",
+    user: profile,
+  });
 };
 
 export const signout = async (_: Request, res: Response) => {
