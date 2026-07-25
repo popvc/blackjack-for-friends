@@ -1,12 +1,11 @@
 import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
-import express from "express";
 import type { Request, Response } from "express";
 import { CORS } from "./cors";
+import type { AuthUser } from "./authToken";
 
 interface SocketData {
-  recipientId: string;
-  senderId: string;
+  user: AuthUser;
 }
 
 //SocketIO works, but is not ideal for this. Considering swapping it out for native Bun Sockets
@@ -17,21 +16,22 @@ interface SocketData {
 //heartbeat
 //maxpayload
 
-const app = express();
+//const app = express();
+function startSocketServer() {
+  const io = new Server<SocketData>({
+    cors: CORS,
+  });
 
-const io = new Server({
-  cors: CORS,
-});
+  const engine = new Engine({
+    path: "/socket.io/",
+  });
 
-const engine = new Engine({
-  path: "/socket.io/",
-});
+  io.bind(engine);
 
-io.bind(engine);
+  //io.use()
 
-//io.use()
-
-io.on("connection", (socket) => {});
-//Needs auth middleware passed
+  io.on("connection", (socket) => {});
+  //Needs auth middleware passed
+}
 
 //needs socket map for connected users
