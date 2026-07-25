@@ -1,4 +1,3 @@
-import type { ErrorRequestHandler } from "express";
 // src/index.ts
 import cookieParser from "cookie-parser";
 import express from "express";
@@ -10,7 +9,7 @@ import { ENV } from "./config/env";
 import { CORS } from "./config/cors";
 import { connectDB } from "./config/db";
 import helmet from "helmet";
-import { AppError } from "./lib/errors";
+import { errorHandler } from "./middleware/errorHandler.middleware";
 
 const { PORT, NODE_ENV } = ENV;
 
@@ -36,17 +35,6 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
 
-const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
-  const statusCode = err instanceof AppError ? err.statusCode : 500;
-  const message =
-    err instanceof AppError && err.isOperational ? err.message : "Internal server error!";
-
-  if (!(err instanceof AppError) || !err.isOperational) {
-    console.error(`Unhandled error on ${req.method} ${req.originalUrl}:`, err);
-  }
-
-  res.status(statusCode).json({ message });
-};
 app.use(errorHandler);
 
 //need auto fail on failed db connect

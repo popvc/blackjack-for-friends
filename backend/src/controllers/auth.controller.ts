@@ -128,7 +128,15 @@ export const signin = async (req: Request, res: Response) => {
   const { email, password } = result.data;
   const profile = await checkCredentials(email, password);
 
-  if (!profile) return res.status(401).json({ message: "Invalid credentials!" });
+  //Returning only a message breaks with established convention,
+  //However the alternative is either specifying both failed, which is misleading
+  if (!profile)
+    return res.status(401).json(
+      errorBodyBody("Sign in failed!", {
+        detail: "Invalid credentials!",
+        pointer: "#",
+      }),
+    );
 
   //if user has non-expired token, prevents unnecessary token generation
   if (checkToken && profile) {
