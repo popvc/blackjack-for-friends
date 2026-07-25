@@ -2,7 +2,10 @@
 import { verifyToken } from "../config/authToken";
 import { Socket, type ExtendedError } from "socket.io";
 
-export const socketAuthMiddleware = async (socket: Socket, next: (err?: ExtendedError | undefined) => void) => {
+export const socketAuthMiddleware = async (
+  socket: Socket,
+  next: (err?: ExtendedError | undefined) => void,
+) => {
   try {
     const token = socket.handshake.headers.cookie
       ?.split("; ")
@@ -26,8 +29,9 @@ export const socketAuthMiddleware = async (socket: Socket, next: (err?: Extended
     //more extensions
     socket.data.userId = user.userId;
     socket.data.username = user.username;
+    socket.data.email = user.email;
 
-    console.log(`SocketIO authenticated. ${user}`);
+    console.log(`SocketIO authenticated: ${user}`);
 
     next();
   } catch (e: unknown) {
