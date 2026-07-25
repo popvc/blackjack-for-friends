@@ -3,8 +3,10 @@ import { Server } from "socket.io";
 import type { Request, Response } from "express";
 import { CORS } from "./cors";
 import type { AuthUser } from "./authToken";
+import helmet from "helmet";
+import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
 
-interface SocketData {
+export interface SocketData {
   user: AuthUser;
 }
 
@@ -16,22 +18,27 @@ interface SocketData {
 //heartbeat
 //maxpayload
 
+//should be able to use helmet
+
 //const app = express();
-function startSocketServer() {
-  const io = new Server<SocketData>({
-    cors: CORS,
-  });
+const io = new Server({
+  cors: CORS,
+});
 
-  const engine = new Engine({
-    path: "/socket.io/",
-  });
+const engine = new Engine({
+  path: "/socket.io/",
+});
 
-  io.bind(engine);
+io.bind(engine);
 
-  //io.use()
+//Express middleware only effects HTTP requests
+io.engine.use(helmet());
 
-  io.on("connection", (socket) => {});
-  //Needs auth middleware passed
-}
+//io.use((socket, next) => {});
+
+io.use(socketAuthMiddleware);
+
+io.on("connection", (socket) => {});
+//Needs auth middleware passed
 
 //needs socket map for connected users

@@ -1,9 +1,8 @@
 //import type { Socket } from "@socket.io/bun-engine/dist/socket";
-import type { NextFunction } from "express";
 import { verifyToken } from "../config/authToken";
-import { Socket } from "socket.io";
+import { Socket, type ExtendedError } from "socket.io";
 
-export const socketAuthMiddleware = async (socket: Socket, next: NextFunction) => {
+export const socketAuthMiddleware = async (socket: Socket, next: (err?: ExtendedError | undefined) => void) => {
   try {
     const token = socket.handshake.headers.cookie
       ?.split("; ")
@@ -25,9 +24,10 @@ export const socketAuthMiddleware = async (socket: Socket, next: NextFunction) =
     }
 
     //more extensions
-    socket.data.user = user;
+    socket.data.userId = user.userId;
+    socket.data.username = user.username;
 
-    console.log(`SocketIO authenticated. ${user}`)
+    console.log(`SocketIO authenticated. ${user}`);
 
     next();
   } catch (e: unknown) {
