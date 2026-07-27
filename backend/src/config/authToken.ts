@@ -8,6 +8,8 @@ const { JWT_SECRET, NODE_ENV } = ENV;
 const ONE_WEEK = "7d";
 const TOKEN_NAME = "jwt";
 
+//TODO: This should be moved to /lib eventually
+
 //Move this somewhere more appropriate later and give it a better name, UserInfo?
 export type AuthUser = Pick<IProfile, "userId" | "username" | "email">;
 

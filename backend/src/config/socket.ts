@@ -1,16 +1,13 @@
 import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
-import type { Request, Response } from "express";
-import { CORS } from "./cors";
-import type { AuthUser } from "./authToken";
+import { CORS_POLICY } from "./cors";
 import helmet from "helmet";
 import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
+import { onSocketConnect, onSocketDisconnect } from "../lib/userPresence";
 
-export interface SocketData {
-  user: AuthUser;
-}
+//might be able to run separate connection for individual game sessions in another container
 
-//SocketIO works, but is not ideal for this. Considering swapping it out for native Bun Sockets
+//SocketIO works, but is not ideal for this. Considering swapping it out for native Bun Sockets later
 
 //binary packet for game state and player moves
 
@@ -20,9 +17,9 @@ export interface SocketData {
 
 //should be able to use helmet
 
-//const app = express();
+//need to enable connection state recover, not active right now
 const io = new Server({
-  cors: CORS,
+  cors: CORS_POLICY,
 });
 
 const engine = new Engine({
@@ -31,14 +28,26 @@ const engine = new Engine({
 
 io.bind(engine);
 
-//Express middleware only effects HTTP requests
+//Express middleware only effects HTTP requests (like long polling)
 io.engine.use(helmet());
-
-//io.use((socket, next) => {});
 
 io.use(socketAuthMiddleware);
 
-io.on("connection", (socket) => {});
-//Needs auth middleware passed
+//TODO: This should be split then moved to /lib eventually
 
-//needs socket map for connected users
+io.on("connection", (socket) => {
+  console.log(`User connected: ${socket.data.username}`);
+  onSocketConnect(socket.id, socket.data.userId);
+
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.data.username}`);
+    onSocketDisconnect(socket.id);
+  });
+});
+
+//TODO:
+// Need a way to resynchronize state for presence, contact requests, messages, game state and anything else
+// Current idea is to use a compound DateTime and number increment for each message type, and compare on each connection
+// though I should double check how it's actually supposed to be done.
+
+export { io };

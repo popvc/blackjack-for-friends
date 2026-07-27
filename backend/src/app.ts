@@ -6,7 +6,7 @@ import cors from "cors";
 import authRoutes from "./routes/auth.route.ts";
 import contactRoutes from "./routes/contact.route.ts";
 import { ENV } from "./config/env";
-import { CORS } from "./config/cors";
+import { CORS_POLICY } from "./config/cors";
 import { connectDB } from "./config/db";
 import helmet from "helmet";
 import { errorHandler } from "./middleware/errorHandler.middleware";
@@ -21,15 +21,12 @@ const app = express();
 
 //look into eslint
 
-//todo: functions to create response objects, currently takes up too much screen real estate
-//todo: asyncHandler()
-
 //need to define additional default headers
 
 app.use(express.json({ limit: "10kb" })); //should have custom sizes set for specific routes
 app.use(helmet());
 //app.use(express.json()); // json destructuring allows req.body
-app.use(cors(CORS));
+app.use(cors(CORS_POLICY));
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
@@ -40,6 +37,8 @@ app.use(errorHandler);
 //need auto fail on failed db connect
 
 //need log about closed connections to db or other services
+
+//Separate this file into app.ts and server.ts files for automated testing
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { ENV } from "./env";
 
+//TODO: This should be moved to /lib eventually
+
 const { MONGODB_URI } = ENV;
 
 export const connectDB = async () => {

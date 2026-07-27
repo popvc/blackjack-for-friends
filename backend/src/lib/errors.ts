@@ -1,3 +1,5 @@
+//worst name record holder?
+
 export class AppError extends Error {
   statusCode: number;
   isOperational: boolean;
