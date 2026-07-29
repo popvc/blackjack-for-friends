@@ -1,42 +1,10 @@
 import type { Request, Response } from "express";
 import { ContactIdDto } from "../dtos/contact.dto";
-import Profile from "../models/profile.schema";
 import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
-import { AppError } from "../lib/errors";
-import mongoose from "mongoose";
+import { ProfileService } from "../services/profile.service";
+import { SocketEvent } from "../lib/socketEvents";
 
-//NOTE: messaging is independent from whether someone is added as a contact or not
-
-//$pull from both users' contactsId arrays; the first update's filter doubles as the atomic
-//existence check (no separate precheck+mutate — avoids the TOCTOU gap `send` papers over
-//with a duplicate-key catch, since there's no unique index backstop for a plain array)
-async function removeContact(userId: string, contactId: string): Promise<boolean> {
-  return await mongoose.connection.transaction(async (session) => {
-    const user = await Profile.findOneAndUpdate(
-      { userId, contactsId: contactId },
-      { $pull: { contactsId: contactId } },
-    ).session(session);
-
-    if (!user) return false;
-
-    const contact = await Profile.findOneAndUpdate(
-      { userId: contactId },
-      { $pull: { contactsId: userId } },
-    ).session(session);
-
-    //same orphan concern as acceptIncomingRequest: the other profile might no longer exist
-    if (!contact) {
-      throw new AppError(500, "Contact profile not found/updated, contact possibly orphaned", false);
-    }
-
-    return true;
-  });
-}
-
-async function getContacts(userId: string): Promise<string[]> {
-  const profile = await Profile.findOne({ userId }).select("contactsId").lean();
-  return profile?.contactsId ?? [];
-}
+//NOTE: messaging should be independent from whether someone is added as a contact or not
 
 export const remove = async (req: Request, res: Response) => {
   const result = ContactIdDto.safeParse(req.params.id);
@@ -48,7 +16,7 @@ export const remove = async (req: Request, res: Response) => {
   }
 
   const contactId = result.data;
-  const { userId } = req.user;
+  const userId = req.user.userId;
 
   if (userId === contactId) {
     return res.status(400).json(
@@ -59,7 +27,7 @@ export const remove = async (req: Request, res: Response) => {
     );
   }
 
-  const removeResult = await removeContact(userId, contactId);
+  const removeResult = await ProfileService.removeContact(userId, contactId);
 
   if (!removeResult) {
     return res.status(404).json(
@@ -69,6 +37,8 @@ export const remove = async (req: Request, res: Response) => {
       }),
     );
   }
+
+  SocketEvent.removeContact(userId, contactId);
 
   res.status(200).json({
     message: "Contact removed",
@@ -82,7 +52,7 @@ export const remove = async (req: Request, res: Response) => {
 export const list = async (req: Request, res: Response) => {
   const { userId } = req.user;
 
-  const contacts = await getContacts(userId);
+  const contacts = await ProfileService.getContacts(userId);
 
   res.status(200).json({
     message: "Contacts retrieved",
@@ -90,8 +60,6 @@ export const list = async (req: Request, res: Response) => {
   });
 };
 
-export const presence = async (req: Request, res: Response) => {
-  
-}
+export const presence = async (req: Request, res: Response) => {};
 
 //need to retrieve a list of all contacts details on first connection, names and presence especially.

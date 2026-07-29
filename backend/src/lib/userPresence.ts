@@ -12,22 +12,22 @@
 // Also, not sure how sustainable doing this in memory is at scale. If I do distributed model, a Redis store might
 // be more appropriate.
 
+//Given the limited scope of my application, I'm going to take a hybrid approach of not prepopulating fields,
+// but also not removing them once the user levaves, in case they just and reconnect a lot. Since I don't
+// have a dedicated service for routing presence, it would be a waste to precompute the whole fanout
+// list and peptually maintain it.
+
 import { io } from "../config/socket";
+import { ProfileService } from "../services/profile.service";
 
 //Need to track who to send status updates to whoever their current acquaitances are
 type UserId = string;
 type SocketId = string;
 
-//offline might only reference how the user wishes to appear to others, activeSockets is probably a more accurate source of truth 
+//offline might only reference how the user wishes to appear to others, activeSockets is a more accurate source of truth
 //type Presence = "online" | "offline" | "dnd" | "away" | "idle";
 type Presence = "online" | "offline";
 
-//still need dedupe versioning, compound of date-time and incremental number
-
-//enum SocketMessage {}
-type SocketMessage = "newPresence";
-
-//relatives refers to anyone
 interface UserPresence {
   activeSockets: Set<SocketId>;
   presence: Presence;
@@ -38,7 +38,7 @@ const connectedSockets = new Map<SocketId, UserId>();
 //user visibility relationship cache
 const watchersByUser = new Map<UserId, Set<UserId>>();
 
-export function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
+function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
   const userSockets = presenceByUser.get(userId);
   if (!userSockets || !userSockets.activeSockets.size) return;
 
@@ -66,14 +66,14 @@ function upsertPresence(userId: UserId): UserPresence {
 }
 
 //feels like this should resolve to what the presence SHOULD be not do any propigation
-export function setPresence(userId: UserId, presence: Presence) {
+function setPresence(userId: UserId, presence: Presence) {
   const p = upsertPresence(userId);
   p.presence = presence;
 
   toWatchersOfId(userId, "newPresence", presence);
 }
 
-export function onSocketConnect(socketId: SocketId, userId: UserId) {
+function onSocketConnect(socketId: SocketId, userId: UserId) {
   connectedSockets.set(socketId, userId);
 
   const p = upsertPresence(userId);
@@ -84,7 +84,7 @@ export function onSocketConnect(socketId: SocketId, userId: UserId) {
   toWatchersOfId(userId, "newPresence", p.presence);
 }
 
-export function onSocketDisconnect(socketId: SocketId) {
+function onSocketDisconnect(socketId: SocketId) {
   const userId = connectedSockets.get(socketId);
   if (!userId) return;
 
@@ -103,7 +103,8 @@ export function onSocketDisconnect(socketId: SocketId) {
   toWatchersOfId(userId, "newPresence", newPresence);
 }
 
-export function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
+//seems odd to check if the set is created every. single. time
+function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   let set = watchersByUser.get(watchedUserId);
   if (!set) {
     set = new Set<UserId>();
@@ -112,11 +113,36 @@ export function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   set.add(contactOwnerId);
 }
 
-export function isUserConnected(userId: UserId): boolean {
+function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
+  watchersByUser.get(watchedUserId);
+  watchersByUser.get(contactOwnerId);
+}
+
+async function createWatcherList(watchedUserId: UserId) {
+  const contactIds = await ProfileService.getContacts(watchedUserId);
+
+  if (!contactIds) return;
+
+  contactIds.forEach((contactId) => {
+    addWatcher(contactId, watchedUserId);
+  });
+}
+
+function isUserConnected(userId: UserId): boolean {
   const userPresence = presenceByUser.get(userId);
 
-  if(userPresence && userPresence.activeSockets.size){
+  if (userPresence && userPresence.activeSockets.size) {
     return true;
   }
   return false;
 }
+
+export const UserPresence = {
+  onSocketConnect,
+  onSocketDisconnect,
+  setPresence,
+  addWatcher,
+  removeWatcher,
+  toWatchersOfId,
+  toSocketsOfId,
+};

@@ -1,87 +1,11 @@
 import { type Request, type Response } from "express";
 import { ContactIdDto } from "../dtos/contact.dto";
 import ContactRequest from "../models/contactRequest.schema";
-import Profile from "../models/profile.schema";
 import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
-import { AppError } from "../lib/errors";
 import mongoose from "mongoose";
-import {
-  acceptContactRequest,
-  cancelContactRequest,
-  rejectContactRequest,
-  sendContactRequest,
-} from "../lib/socketEvents";
-
-//TODO: Socket push needs to be implemented for all endpoints
-
-//Is there a way to bundle these requests together and send them at once? The round trip cost here seems unnecessary
-
-async function isValidId(contactId: string): Promise<boolean> {
-  const isValidId = await Profile.findOne({ userId: contactId });
-  return isValidId ? true : false;
-}
-
-async function isContactAdded(userId: string, contactId: string): Promise<boolean> {
-  const contact = await Profile.findOne({ userId, contactsId: contactId });
-  return contact ? true : false;
-}
-
-//not really sure if I can break this down into smaller functions meaingfully
-//this needs socket event push
-async function acceptIncomingRequest(recipientId: string, senderId: string): Promise<boolean> {
-  return await mongoose.connection.transaction(async (session) => {
-    const remove = await ContactRequest.deleteOne({
-      $or: [
-        { lowId: recipientId, highId: senderId, senderId: senderId },
-        { lowId: senderId, highId: recipientId, senderId: senderId },
-      ],
-    }).session(session);
-
-    if (!remove.deletedCount) return false;
-
-    const user = await Profile.findOneAndUpdate(
-      { userId: recipientId },
-      { $addToSet: { contactsId: senderId } },
-    ).session(session);
-    const contact = await Profile.findOneAndUpdate(
-      { userId: senderId },
-      { $addToSet: { contactsId: recipientId } },
-    ).session(session);
-
-    //hypothetically either user might not exist anymore if their account no longer exists
-    //this propably needs to be logged, as it means there's an orphaned contact request in the DB
-    if (!user || !contact) {
-      throw new AppError(500, "User(s) not found/updated, request possibly orphaned", false);
-    }
-
-    return true;
-  });
-}
-
-async function deleteContactRequest(senderId: string, recipientId: string): Promise<boolean> {
-  const remove = await ContactRequest.deleteOne({
-    $or: [
-      { lowId: senderId, highId: recipientId, senderId },
-      { lowId: recipientId, highId: senderId, senderId },
-    ],
-  });
-
-  return remove.deletedCount > 0;
-}
-
-async function getContactRequests(
-  userId: string,
-): Promise<{ senderId: string; recipientId: string }[]> {
-  const requests = await ContactRequest.find({
-    $or: [{ lowId: userId }, { highId: userId }],
-  }).lean();
-
-  //senderId is always one of lowId/highId; recipientId is whichever one it isn't
-  return requests.map(({ lowId, highId, senderId }) => ({
-    senderId,
-    recipientId: senderId === lowId ? highId : lowId,
-  }));
-}
+import { ContactReqService } from "../services/contactReq.service";
+import { ProfileService } from "../services/profile.service";
+import { SocketEvent } from "../lib/socketEvents";
 
 export const send = async (req: Request, res: Response) => {
   const result = ContactIdDto.safeParse(req.params.id);
@@ -103,8 +27,8 @@ export const send = async (req: Request, res: Response) => {
   }
 
   const [valid, added] = await Promise.all([
-    isValidId(recipientId),
-    isContactAdded(senderId, recipientId),
+    ProfileService.isValidId(recipientId),
+    ProfileService.isContactAdded(senderId, recipientId),
   ]);
 
   if (!valid) {
@@ -145,7 +69,7 @@ export const send = async (req: Request, res: Response) => {
     throw e;
   }
 
-  sendContactRequest(senderId, recipientId);
+  SocketEvent.sendContactRequest(senderId, recipientId);
 
   res.status(201).json({
     message: "Contact request sent",
@@ -177,7 +101,7 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
-  const acceptResult = await acceptIncomingRequest(recipientId, senderId);
+  const acceptResult = await ContactReqService.acceptContactRequest(recipientId, senderId);
 
   if (!acceptResult) {
     return res.status(404).json(
@@ -188,7 +112,7 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
-  acceptContactRequest(senderId, recipientId);
+  SocketEvent.acceptContactRequest(senderId, recipientId);
 
   res.status(201).json({
     message: "Contact request accepted",
@@ -220,7 +144,7 @@ export const reject = async (req: Request, res: Response) => {
     );
   }
 
-  const deleted = await deleteContactRequest(senderId, recipientId);
+  const deleted = await ContactReqService.deleteContactRequest(senderId, recipientId);
 
   if (!deleted) {
     return res.status(404).json(
@@ -231,7 +155,7 @@ export const reject = async (req: Request, res: Response) => {
     );
   }
 
-  rejectContactRequest(senderId, recipientId);
+  SocketEvent.rejectContactRequest(senderId, recipientId);
 
   res.status(200).json({
     message: "Contact request rejected",
@@ -263,7 +187,7 @@ export const cancel = async (req: Request, res: Response) => {
     );
   }
 
-  const deleted = await deleteContactRequest(senderId, recipientId);
+  const deleted = await ContactReqService.deleteContactRequest(senderId, recipientId);
 
   if (!deleted) {
     return res.status(404).json(
@@ -274,7 +198,7 @@ export const cancel = async (req: Request, res: Response) => {
     );
   }
 
-  cancelContactRequest(senderId, recipientId);
+  SocketEvent.cancelContactRequest(senderId, recipientId);
 
   res.status(200).json({
     message: "Contact request cancelled",
@@ -289,7 +213,7 @@ export const cancel = async (req: Request, res: Response) => {
 export const list = async (req: Request, res: Response) => {
   const { userId } = req.user;
 
-  const requests = await getContactRequests(userId);
+  const requests = await ContactReqService.getContactRequests(userId);
 
   res.status(200).json({
     message: "Contact requests retrieved",

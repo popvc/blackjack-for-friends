@@ -1,6 +1,6 @@
-import { toSocketsOfId } from "./userPresence";
-
 //send contact request event to user
+
+import { UserPresence } from "./userPresence";
 
 /*
 type ContactRequest = {
@@ -19,19 +19,36 @@ enum ContactReqEvent {
   Cancel = "cancelContactReq",
 }
 
-export function sendContactRequest(senderId: string, recipientId: string) {
-  toSocketsOfId(recipientId, ContactReqEvent.Send, { senderId, recipientId });
+enum ContactEvent {
+  Remove = "removeContact",
 }
 
-export function acceptContactRequest(senderId: string, recipientId: string) {
-  toSocketsOfId(senderId, ContactReqEvent.Accept, { senderId, recipientId });
+function sendContactRequest(senderId: string, recipientId: string) {
+  UserPresence.toSocketsOfId(recipientId, ContactReqEvent.Send, { senderId, recipientId });
 }
 
-export function rejectContactRequest(senderId: string, recipientId: string) {
-  toSocketsOfId(senderId, ContactReqEvent.Reject, { senderId, recipientId });
+function acceptContactRequest(senderId: string, recipientId: string) {
+  //needs to add both parties to each others watched lists
+  UserPresence.toSocketsOfId(senderId, ContactReqEvent.Accept, { senderId, recipientId });
 }
 
-export function cancelContactRequest(senderId: string, recipientId: string) {
-  toSocketsOfId(senderId, ContactReqEvent.Cancel, { senderId, recipientId });
+function rejectContactRequest(senderId: string, recipientId: string) {
+  UserPresence.toSocketsOfId(senderId, ContactReqEvent.Reject, { senderId, recipientId });
 }
 
+function cancelContactRequest(senderId: string, recipientId: string) {
+  UserPresence.toSocketsOfId(senderId, ContactReqEvent.Cancel, { senderId, recipientId });
+}
+
+function removeContact(senderId: string, recipientId: string) {
+  //needs to remove both parties from each others watched lists
+  UserPresence.toSocketsOfId(recipientId, ContactEvent.Remove, { senderId, recipientId });
+}
+
+export const SocketEvent = {
+  sendContactRequest,
+  acceptContactRequest,
+  rejectContactRequest,
+  cancelContactRequest,
+  removeContact,
+};

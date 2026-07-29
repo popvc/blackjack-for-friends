@@ -6,19 +6,7 @@ import { expireToken, generateAuthToken, type AuthUser } from "../config/authTok
 import { customAlphabet } from "nanoid";
 import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
 import { errorBodyBody, zodErrorBodyBody } from "../lib/responseMessage";
-
-//TODO:
-//Login should return a list of chat partners
-
-async function uniqueEmail(email: string): Promise<boolean> {
-  const profile = await Profile.findOne({ email });
-  return profile ? false : true;
-}
-
-async function uniqueUsername(username: string): Promise<boolean> {
-  const profile = await Profile.findOne({ username });
-  return profile ? false : true;
-}
+import { ProfileService } from "../services/profile.service";
 
 async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
@@ -29,29 +17,6 @@ async function hashPassword(password: string): Promise<string> {
 function generateUserId(): string {
   const nanoid = customAlphabet("1234567890", 20);
   return nanoid();
-}
-
-async function checkCredentials(email: string, password: string): Promise<AuthUser | null> {
-  try {
-    const profile = await Profile.findOne({ email });
-
-    if (!profile || !profile.password) {
-      return null;
-    }
-
-    //return await bcrypt.compare(password, profile.password);
-    if (await bcrypt.compare(password, profile.password)) {
-      return {
-        userId: profile.userId,
-        username: profile.username,
-        email: profile.email,
-      } as AuthUser;
-    }
-
-    return null;
-  } catch (e: unknown) {
-    throw `Failed to authenticate credentials:${e}`;
-  }
 }
 
 export const signup = async (req: Request, res: Response) => {
@@ -69,8 +34,8 @@ export const signup = async (req: Request, res: Response) => {
   const { username, email, password } = result.data;
 
   const [usernameIsUnique, emailIsUnique] = await Promise.all([
-    uniqueEmail(email),
-    uniqueUsername(username),
+    ProfileService.isUniqueEmail(email),
+    ProfileService.isUniqueUsername(username),
   ]);
 
   if (!emailIsUnique) {
@@ -126,7 +91,7 @@ export const signin = async (req: Request, res: Response) => {
   }
 
   const { email, password } = result.data;
-  const profile = await checkCredentials(email, password);
+  const profile = await ProfileService.checkCredentials(email, password);
 
   //Returning only a message breaks with established convention,
   //However the alternative is either specifying both failed, which is misleading
