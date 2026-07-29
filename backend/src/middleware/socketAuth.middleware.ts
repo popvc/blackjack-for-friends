@@ -7,10 +7,8 @@ export const socketAuthMiddleware = async (
   next: (err?: ExtendedError | undefined) => void,
 ) => {
   try {
-    const token = socket.handshake.headers.cookie
-      ?.split("; ")
-      .find((row) => row.startsWith("jwt="))
-      ?.split("=")[1];
+    //just remember to set it everytime in the client upon connection!!!
+    const token = socket.handshake.auth.jwt;
 
     console.log("socketAuthMiddleware", token);
 

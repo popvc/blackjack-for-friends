@@ -89,3 +89,9 @@ export const list = async (req: Request, res: Response) => {
     contacts,
   });
 };
+
+export const presence = async (req: Request, res: Response) => {
+  
+}
+
+//need to retrieve a list of all contacts details on first connection, names and presence especially.

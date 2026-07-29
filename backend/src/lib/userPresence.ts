@@ -9,7 +9,7 @@
 // and ensuring that operation completes before any data is transmitted. Though, if any updates to the cache
 // are handled guaranteed to happen before then, it shouldn't be a problem.
 // TL;DR using precomputed fanout lists. Heavier, but fast.
-// Also, not sure how sustainable doing this in memory is at scale. If I do distributed model, a Redis store would
+// Also, not sure how sustainable doing this in memory is at scale. If I do distributed model, a Redis store might
 // be more appropriate.
 
 import { io } from "../config/socket";
@@ -18,7 +18,8 @@ import { io } from "../config/socket";
 type UserId = string;
 type SocketId = string;
 
-//type Presence = "online" | "offline" | "invisible" | "dnd" | "away" | "idle";
+//offline might only reference how the user wishes to appear to others, activeSockets is probably a more accurate source of truth 
+//type Presence = "online" | "offline" | "dnd" | "away" | "idle";
 type Presence = "online" | "offline";
 
 //still need dedupe versioning, compound of date-time and incremental number
@@ -37,21 +38,21 @@ const connectedSockets = new Map<SocketId, UserId>();
 //user visibility relationship cache
 const watchersByUser = new Map<UserId, Set<UserId>>();
 
-function toSocketsById(userId: UserId, event: any, ...args: any[]) {
+export function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
   const userSockets = presenceByUser.get(userId);
-  if (!userSockets) return;
+  if (!userSockets || !userSockets.activeSockets.size) return;
 
   for (const sockId of userSockets.activeSockets) {
     io.to(sockId).emit(event, ...args);
   }
 }
 
-function toWatchersById(userId: UserId, event: any, ...args: any[]) {
+function toWatchersOfId(userId: UserId, event: any, ...args: any[]) {
   const userWatchers = watchersByUser.get(userId);
-  if (!userWatchers) return;
+  if (!userWatchers || watchersByUser.size) return;
 
   for (const watcherId of userWatchers) {
-    toSocketsById(watcherId, event, ...args);
+    toSocketsOfId(watcherId, event, ...args);
   }
 }
 
@@ -69,7 +70,7 @@ export function setPresence(userId: UserId, presence: Presence) {
   const p = upsertPresence(userId);
   p.presence = presence;
 
-  toWatchersById(userId, "newPresence", presence);
+  toWatchersOfId(userId, "newPresence", presence);
 }
 
 export function onSocketConnect(socketId: SocketId, userId: UserId) {
@@ -80,7 +81,7 @@ export function onSocketConnect(socketId: SocketId, userId: UserId) {
 
   if (p.presence === "offline") p.presence = "online";
 
-  toWatchersById(userId, "newPresence", p.presence);
+  toWatchersOfId(userId, "newPresence", p.presence);
 }
 
 export function onSocketDisconnect(socketId: SocketId) {
@@ -99,7 +100,7 @@ export function onSocketDisconnect(socketId: SocketId) {
   if (p.presence === newPresence) return;
   p.presence = newPresence;
 
-  toWatchersById(userId, "newPresence", newPresence);
+  toWatchersOfId(userId, "newPresence", newPresence);
 }
 
 export function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
@@ -111,11 +112,11 @@ export function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   set.add(contactOwnerId);
 }
 
-export function getAllSocketIdByUserId(userId: UserId): Set<SocketId> | undefined {
-  const activeSock = presenceByUser.get(userId);
-  if (activeSock && activeSock.activeSockets.size > 0) {
-    return activeSock.activeSockets;
-  }
+export function isUserConnected(userId: UserId): boolean {
+  const userPresence = presenceByUser.get(userId);
 
-  return undefined;
+  if(userPresence && userPresence.activeSockets.size){
+    return true;
+  }
+  return false;
 }

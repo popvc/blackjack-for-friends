@@ -1,3 +1,7 @@
+//contactRequests: Does this need optimistic updates?
+//send and reject cannot conflict with another user's actions
+//cancel and accept are more likely to fail as the other user can 
+
 //TODO (contacts):
 //players need contacts list field
 //need to search by player ID or name (exact match)

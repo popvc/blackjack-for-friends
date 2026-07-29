@@ -5,6 +5,12 @@ import Profile from "../models/profile.schema";
 import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
 import { AppError } from "../lib/errors";
 import mongoose from "mongoose";
+import {
+  acceptContactRequest,
+  cancelContactRequest,
+  rejectContactRequest,
+  sendContactRequest,
+} from "../lib/socketEvents";
 
 //TODO: Socket push needs to be implemented for all endpoints
 
@@ -52,15 +58,11 @@ async function acceptIncomingRequest(recipientId: string, senderId: string): Pro
   });
 }
 
-async function deleteContactRequest(
-  userId: string,
-  otherId: string,
-  expectedSenderId: string,
-): Promise<boolean> {
+async function deleteContactRequest(senderId: string, recipientId: string): Promise<boolean> {
   const remove = await ContactRequest.deleteOne({
     $or: [
-      { lowId: userId, highId: otherId, senderId: expectedSenderId },
-      { lowId: otherId, highId: userId, senderId: expectedSenderId },
+      { lowId: senderId, highId: recipientId, senderId },
+      { lowId: recipientId, highId: senderId, senderId },
     ],
   });
 
@@ -85,15 +87,13 @@ export const send = async (req: Request, res: Response) => {
   const result = ContactIdDto.safeParse(req.params.id);
 
   if (!result.success) {
-    return res
-      .status(400)
-      .json(zodErrorParamsBody("Failed to send request!", result.error.issues));
+    return res.status(400).json(zodErrorParamsBody("Failed to send request!", result.error.issues));
   }
 
   const recipientId = result.data;
-  const { userId } = req.user;
+  const senderId = req.user.userId;
 
-  if (userId === recipientId) {
+  if (senderId === recipientId) {
     return res.status(400).json(
       errorParamsBody("Failed to send contact request!", {
         detail: "Invalid input: cannot send contact request to self",
@@ -104,7 +104,7 @@ export const send = async (req: Request, res: Response) => {
 
   const [valid, added] = await Promise.all([
     isValidId(recipientId),
-    isContactAdded(userId, recipientId),
+    isContactAdded(senderId, recipientId),
   ]);
 
   if (!valid) {
@@ -126,9 +126,9 @@ export const send = async (req: Request, res: Response) => {
   }
 
   const newContactRequest = new ContactRequest({
-    lowId: userId,
+    lowId: senderId,
     highId: recipientId,
-    senderId: userId,
+    senderId: senderId,
   });
 
   try {
@@ -145,10 +145,12 @@ export const send = async (req: Request, res: Response) => {
     throw e;
   }
 
+  sendContactRequest(senderId, recipientId);
+
   res.status(201).json({
     message: "Contact request sent",
     contactRequest: {
-      senderId: userId,
+      senderId: senderId,
       recipientId: recipientId,
     },
   });
@@ -164,9 +166,9 @@ export const accept = async (req: Request, res: Response) => {
   }
 
   const senderId = result.data;
-  const { userId } = req.user;
+  const recipientId = req.user.userId;
 
-  if (userId === senderId) {
+  if (recipientId === senderId) {
     return res.status(400).json(
       errorParamsBody("Failed to accept contact request!", {
         detail: "Invalid input: cannot accept request from self",
@@ -175,7 +177,7 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
-  const acceptResult = await acceptIncomingRequest(userId, senderId);
+  const acceptResult = await acceptIncomingRequest(recipientId, senderId);
 
   if (!acceptResult) {
     return res.status(404).json(
@@ -186,11 +188,13 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
+  acceptContactRequest(senderId, recipientId);
+
   res.status(201).json({
     message: "Contact request accepted",
     request: {
       senderId: senderId,
-      recipientId: userId,
+      recipientId: recipientId,
     },
   });
 };
@@ -205,9 +209,9 @@ export const reject = async (req: Request, res: Response) => {
   }
 
   const senderId = result.data;
-  const { userId } = req.user;
+  const recipientId = req.user.userId;
 
-  if (userId === senderId) {
+  if (recipientId === senderId) {
     return res.status(400).json(
       errorParamsBody("Failed to reject contact request!", {
         detail: "Invalid input: cannot reject request from self",
@@ -216,7 +220,7 @@ export const reject = async (req: Request, res: Response) => {
     );
   }
 
-  const deleted = await deleteContactRequest(userId, senderId, senderId);
+  const deleted = await deleteContactRequest(senderId, recipientId);
 
   if (!deleted) {
     return res.status(404).json(
@@ -227,11 +231,13 @@ export const reject = async (req: Request, res: Response) => {
     );
   }
 
+  rejectContactRequest(senderId, recipientId);
+
   res.status(200).json({
     message: "Contact request rejected",
     request: {
       senderId: senderId,
-      recipientId: userId,
+      recipientId: recipientId,
     },
   });
 };
@@ -246,9 +252,9 @@ export const cancel = async (req: Request, res: Response) => {
   }
 
   const recipientId = result.data;
-  const { userId } = req.user;
+  const senderId = req.user.userId;
 
-  if (userId === recipientId) {
+  if (senderId === recipientId) {
     return res.status(400).json(
       errorParamsBody("Failed to cancel contact request!", {
         detail: "Invalid input: cannot cancel request to self",
@@ -257,7 +263,7 @@ export const cancel = async (req: Request, res: Response) => {
     );
   }
 
-  const deleted = await deleteContactRequest(userId, recipientId, userId);
+  const deleted = await deleteContactRequest(senderId, recipientId);
 
   if (!deleted) {
     return res.status(404).json(
@@ -268,10 +274,12 @@ export const cancel = async (req: Request, res: Response) => {
     );
   }
 
+  cancelContactRequest(senderId, recipientId);
+
   res.status(200).json({
     message: "Contact request cancelled",
     request: {
-      senderId: userId,
+      senderId: senderId,
       recipientId: recipientId,
     },
   });
