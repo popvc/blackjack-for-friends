@@ -12,10 +12,12 @@
 // Also, not sure how sustainable doing this in memory is at scale. If I do distributed model, a Redis store might
 // be more appropriate.
 
-//Given the limited scope of my application, I'm going to take a hybrid approach of not prepopulating fields,
-// but also not removing them once the user levaves, in case they just and reconnect a lot. Since I don't
-// have a dedicated service for routing presence, it would be a waste to precompute the whole fanout
-// list and peptually maintain it.
+//In contrast to everything I wrote above, I am going to delete the associated entry for a user when they
+// are fully disconnected. Given the scale of this application, I'd rather not have completely unaccounted for
+// memory leaks. I considered creating a max list size, but that's going to be annoying to baby sit. For
+// now, I'm going to use this approach, once I start deploying separate containers for this I can take the
+// approach noted above.
+
 
 import { io } from "../config/socket";
 import { ProfileService } from "../services/profile.service";
@@ -49,7 +51,7 @@ function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
 
 function toWatchersOfId(userId: UserId, event: any, ...args: any[]) {
   const userWatchers = watchersByUser.get(userId);
-  if (!userWatchers || watchersByUser.size) return;
+  if (!userWatchers || !watchersByUser.size) return;
 
   for (const watcherId of userWatchers) {
     toSocketsOfId(watcherId, event, ...args);
@@ -73,11 +75,18 @@ function setPresence(userId: UserId, presence: Presence) {
   toWatchersOfId(userId, "newPresence", presence);
 }
 
-function onSocketConnect(socketId: SocketId, userId: UserId) {
+async function onSocketConnect(socketId: SocketId, userId: UserId) {
   connectedSockets.set(socketId, userId);
 
   const p = upsertPresence(userId);
   p.activeSockets.add(socketId);
+
+  const watchedList = watchersByUser.get(userId);
+  if (!watchedList) {
+    watchersByUser.set(userId, new Set<UserId>());
+    const contactList = await ProfileService.getContacts(userId);
+    createWatcherList(userId, contactList);
+  }
 
   if (p.presence === "offline") p.presence = "online";
 
@@ -91,11 +100,22 @@ function onSocketDisconnect(socketId: SocketId) {
   connectedSockets.delete(socketId);
 
   const p = presenceByUser.get(userId);
-  if (!p) return;
+  if (!p) {
+    console.error("userPresence not found, failed to remove user");
+    return;
+  }
 
   p.activeSockets.delete(socketId);
 
-  const newPresence: Presence = p.activeSockets.size === 0 ? "offline" : p.presence;
+  const isOnline = p.activeSockets.size;
+
+  let newPresence: Presence;
+  if (isOnline) {
+    newPresence = p.presence;
+  } else {
+    newPresence = "offline";
+    removeWatcherList(userId);
+  }
 
   if (p.presence === newPresence) return;
   p.presence = newPresence;
@@ -103,29 +123,39 @@ function onSocketDisconnect(socketId: SocketId) {
   toWatchersOfId(userId, "newPresence", newPresence);
 }
 
-//seems odd to check if the set is created every. single. time
 function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   let set = watchersByUser.get(watchedUserId);
   if (!set) {
-    set = new Set<UserId>();
-    watchersByUser.set(watchedUserId, set);
+    console.error("watchedUser Set not found, failed to add watcher");
+    return;
   }
+
   set.add(contactOwnerId);
 }
 
 function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
-  watchersByUser.get(watchedUserId);
-  watchersByUser.get(contactOwnerId);
+  let set = watchersByUser.get(watchedUserId);
+  if (!set) {
+    console.error("watchedUser Set not found, failed to remove watcher");
+    return;
+  }
+  set.delete(contactOwnerId);
 }
 
-async function createWatcherList(watchedUserId: UserId) {
-  const contactIds = await ProfileService.getContacts(watchedUserId);
+//possibly race condition?
+async function createWatcherList(userId: UserId, contactList: UserId[]) {
+  if (!contactList.length) return;
 
-  if (!contactIds) return;
-
-  contactIds.forEach((contactId) => {
-    addWatcher(contactId, watchedUserId);
+  contactList.forEach((contactId) => {
+    addWatcher(contactId, userId);
   });
+}
+
+function removeWatcherList(userId: UserId) {
+  let result = watchersByUser.delete(userId);
+  if (!result) {
+    console.error("watchedUser Set not found, failed to delete");
+  }
 }
 
 function isUserConnected(userId: UserId): boolean {
@@ -140,7 +170,6 @@ function isUserConnected(userId: UserId): boolean {
 export const UserPresence = {
   onSocketConnect,
   onSocketDisconnect,
-  setPresence,
   addWatcher,
   removeWatcher,
   toWatchersOfId,

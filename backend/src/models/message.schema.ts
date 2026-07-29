@@ -8,8 +8,7 @@ import mongoose from "mongoose";
 export interface IMessage {
   senderId: string;
   recipientId: string;
-  text?: string;
-  image?: string;
+  text: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,9 +27,7 @@ const messageSchema = new mongoose.Schema<IMessage>(
       type: String,
       trim: true,
       maxlength: 2000,
-    },
-    image: {
-      type: String,
+      required: true,
     },
   },
   { timestamps: true },

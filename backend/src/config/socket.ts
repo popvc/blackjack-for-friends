@@ -32,18 +32,9 @@ const engine = new Engine({
 io.bind(engine);
 
 //Express middleware only effects HTTP requests (like long polling)
-io.engine.use(helmet());
+//io.engine.use(helmet()); //I think because we're using Bun and not Node this isn't working
 
 io.use(socketAuthMiddleware);
-
-//precomputes fanout lists, should probably be in the same file as the fanout list (good reminder for now)
-//just this left, then I have to work on frontend
-//gets all profiles and adds them to the list
-function constructFanoutlist() {
-  //only thing I think we need to do is watchersByUser, upsert should handle the rest, precomputing the rest sounds annoying too
-  //const userContacts = getContacts(userId);
-  //addContactsAsWatchers()
-}
 
 //TODO: This should be split then moved to /lib eventually
 
@@ -56,10 +47,5 @@ io.on("connection", (socket) => {
     UserPresence.onSocketDisconnect(socket.id);
   });
 });
-
-//heartbeat - SocketIO can be configured to handle this
-//received from client acks - SocketIO can be configured to handle this
-
-//upon reconnection, will resync from DB.
 
 export { io };

@@ -29,6 +29,7 @@ type AuthActions = {
   signout: () => Promise<void>;
 };
 
+//could also use React's HotToast, that way I don't have to worry about how I'll communicate errors
 //is this appropriate?
 function handleAxiosError(error: unknown) {
   if (axios.isAxiosError(error)) {

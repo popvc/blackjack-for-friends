@@ -9,8 +9,6 @@ type ContactRequest = {
 }
 */
 
-// should I do emit.sendContactRequest() or something?
-
 //Might move this somewhere else eventually
 enum ContactReqEvent {
   Send = "sendContactReq",
@@ -28,7 +26,9 @@ function sendContactRequest(senderId: string, recipientId: string) {
 }
 
 function acceptContactRequest(senderId: string, recipientId: string) {
-  //needs to add both parties to each others watched lists
+  UserPresence.addWatcher(senderId, recipientId);
+  UserPresence.addWatcher(recipientId, senderId);
+
   UserPresence.toSocketsOfId(senderId, ContactReqEvent.Accept, { senderId, recipientId });
 }
 
@@ -41,7 +41,9 @@ function cancelContactRequest(senderId: string, recipientId: string) {
 }
 
 function removeContact(senderId: string, recipientId: string) {
-  //needs to remove both parties from each others watched lists
+  UserPresence.removeWatcher(senderId, recipientId);
+  UserPresence.removeWatcher(recipientId, senderId);
+
   UserPresence.toSocketsOfId(recipientId, ContactEvent.Remove, { senderId, recipientId });
 }
 
