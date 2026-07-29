@@ -5,12 +5,17 @@ import cors from "cors";
 import authRoutes from "./routes/auth.route.ts";
 import contactRoutes from "./routes/contact.route.ts";
 import { ENV } from "./config/env";
-import { CORS_POLICY } from "./config/cors";
 import { connectDB } from "./config/db";
 import helmet from "helmet";
 import { errorHandler } from "./middleware/errorHandler.middleware";
 
-const { PORT, NODE_ENV } = ENV;
+const { PORT, NODE_ENV, CLIENT_URL } = ENV;
+
+export const CORS_POLICY = {
+  origin: CLIENT_URL,
+  credentials: true,
+} as const;
+
 
 const app = express();
 

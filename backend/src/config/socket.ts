@@ -1,9 +1,9 @@
 import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
-import { CORS_POLICY } from "./cors";
 import helmet from "helmet";
 import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
 import { UserPresence } from "../lib/userPresence";
+import { CORS_POLICY } from "../app";
 
 //unimportant for now: protobuf for faster serialization
 

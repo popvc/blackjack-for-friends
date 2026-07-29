@@ -19,3 +19,4 @@ export interface AuthResponse {
   message: string;
   user: AuthUser;
 }
+

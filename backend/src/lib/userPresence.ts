@@ -18,7 +18,6 @@
 // now, I'm going to use this approach, once I start deploying separate containers for this I can take the
 // approach noted above.
 
-
 import { io } from "../config/socket";
 import { ProfileService } from "../services/profile.service";
 
@@ -158,6 +157,23 @@ function removeWatcherList(userId: UserId) {
   }
 }
 
+//Source of truth is based on in-memory watcher list, not DB
+function getContactsPresence(userId: UserId): { userId: UserId; presence: Presence }[] {
+  const userWatchers = watchersByUser.get(userId);
+
+  if (!userWatchers) return [];
+
+  //const userIdPresence = new Map<UserId, Presence>();
+  const userIdPresence: { userId: UserId; presence: Presence }[] = [];
+  userWatchers.forEach((contactId) => {
+    const p = presenceByUser.get(userId);
+    const userPresence: Presence = p?.presence ? p.presence : "offline";
+    userIdPresence.push({ userId: userId, presence: userPresence });
+  });
+
+  return userIdPresence;
+}
+
 function isUserConnected(userId: UserId): boolean {
   const userPresence = presenceByUser.get(userId);
 
@@ -170,6 +186,7 @@ function isUserConnected(userId: UserId): boolean {
 export const UserPresence = {
   onSocketConnect,
   onSocketDisconnect,
+  getContactsPresence,
   addWatcher,
   removeWatcher,
   toWatchersOfId,

@@ -3,6 +3,7 @@ import { ContactIdDto } from "../dtos/contact.dto";
 import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
 import { ProfileService } from "../services/profile.service";
 import { SocketEvent } from "../lib/socketEvents";
+import { UserPresence } from "../lib/userPresence";
 
 //NOTE: messaging should be independent from whether someone is added as a contact or not
 
@@ -60,6 +61,12 @@ export const list = async (req: Request, res: Response) => {
   });
 };
 
-export const presence = async (req: Request, res: Response) => {};
+export const presence = async (req: Request, res: Response) => {
+  const { userId } = req.user;
+
+const contactsPresence = UserPresence.getContactsPresence(userId)
+
+  res.status(200).json({message: "Contacts presence retrieved", contactsPresence});
+};
 
 //need to retrieve a list of all contacts details on first connection, names and presence especially.

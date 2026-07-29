@@ -1,24 +1,30 @@
 import axios from "axios";
+import { io, Socket } from "socket.io-client";
 import { create } from "zustand";
-import { axiosInstance } from "../config/axios";
+import { axiosInstance, BASE_URL } from "../config/axios";
 import type { AuthResponse, AuthUser, LoginData, SignupData } from "../types/auth";
+import type { PresenceData, UserPresence } from "../types/contacts";
 
 const UNAUTHENTICATED = null;
 
 type AuthState = {
   authUser: AuthUser | null;
-  isCheckingAuth: boolean,
-  isSigningUp: boolean,
-  isSigningIn: boolean,
-  isSigningOut: boolean,
-}
+  socket: Socket | null;
+  isCheckingAuth: boolean;
+  isSigningUp: boolean;
+  isSigningIn: boolean;
+  isSigningOut: boolean;
+  contactsPresence: UserPresence[];
+};
 
 const initialState = {
   authUser: UNAUTHENTICATED,
+  socket: null,
   isCheckingAuth: false,
   isSigningUp: false,
   isSigningIn: false,
   isSigningOut: false,
+  contactsPresence: [],
 };
 
 //these should have DTOs, or at least types that correspond with the backend
@@ -27,6 +33,8 @@ type AuthActions = {
   signup: (data: SignupData) => Promise<void>;
   signin: (data: LoginData) => Promise<void>;
   signout: () => Promise<void>;
+  connectSocket: () => void;
+  disconnectSocket: () => void;
 };
 
 //could also use React's HotToast, that way I don't have to worry about how I'll communicate errors
@@ -40,7 +48,7 @@ function handleAxiosError(error: unknown) {
 }
 
 //seems like Tanstack Query does most of this, but better. I have a deadline, so I'll consider it another time
-export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
+export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
   ...initialState,
 
   checkAuth: async () => {
@@ -87,5 +95,28 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
     } finally {
       set({ isSigningOut: false });
     }
+  },
+  connectSocket: async () => {
+    const { authUser } = get();
+
+    //not authed, not connected already
+    if (!authUser || get().socket?.connected) return;
+
+    const socket = io(BASE_URL, {
+      withCredentials: true,
+    });
+
+    socket.connect();
+
+    set({ socket: socket });
+
+    const res = await axiosInstance.get<PresenceData>("/contact/presence");
+
+    set({ contactsPresence: res.data.contactsPresence });
+    //listening for events
+    //socket.on()
+  },
+  disconnectSocket: async () => {
+    if (get().socket?.connect) get().socket?.disconnect();
   },
 }));
