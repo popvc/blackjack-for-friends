@@ -116,7 +116,7 @@ export const accept = async (req: Request, res: Response) => {
 
   res.status(201).json({
     message: "Contact request accepted",
-    request: {
+    contactRequest: {
       senderId: senderId,
       recipientId: recipientId,
     },
@@ -159,7 +159,7 @@ export const reject = async (req: Request, res: Response) => {
 
   res.status(200).json({
     message: "Contact request rejected",
-    request: {
+    contactRequest: {
       senderId: senderId,
       recipientId: recipientId,
     },
@@ -202,7 +202,7 @@ export const cancel = async (req: Request, res: Response) => {
 
   res.status(200).json({
     message: "Contact request cancelled",
-    request: {
+    contactRequest: {
       senderId: senderId,
       recipientId: recipientId,
     },
@@ -217,6 +217,6 @@ export const list = async (req: Request, res: Response) => {
 
   res.status(200).json({
     message: "Contact requests retrieved",
-    requests: requests,
+    contactRequests: requests,
   });
 };

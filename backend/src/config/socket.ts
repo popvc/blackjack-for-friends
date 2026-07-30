@@ -3,7 +3,7 @@ import { Server } from "socket.io";
 import helmet from "helmet";
 import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
 import { UserPresence } from "../lib/userPresence";
-import { CORS_POLICY } from "../app";
+import { CORS_POLICY } from "./cors";
 
 //unimportant for now: protobuf for faster serialization
 

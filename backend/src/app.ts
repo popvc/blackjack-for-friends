@@ -8,13 +8,9 @@ import { ENV } from "./config/env";
 import { connectDB } from "./config/db";
 import helmet from "helmet";
 import { errorHandler } from "./middleware/errorHandler.middleware";
+import { CORS_POLICY } from "./config/cors.ts";
 
-const { PORT, NODE_ENV, CLIENT_URL } = ENV;
-
-export const CORS_POLICY = {
-  origin: CLIENT_URL,
-  credentials: true,
-} as const;
+const { PORT, NODE_ENV } = ENV;
 
 
 const app = express();
@@ -33,10 +29,12 @@ app.use(helmet());
 app.use(cors(CORS_POLICY));
 app.use(cookieParser());
 
+//I think above/???
+app.use(errorHandler);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
 
-app.use(errorHandler);
 
 //need auto fail on failed db connect
 

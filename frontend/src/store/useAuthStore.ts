@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 import { create } from "zustand";
 import { axiosInstance, BASE_URL } from "../config/axios";
 import type { AuthResponse, AuthUser, LoginData, SignupData } from "../types/auth";
-import type { PresenceData, UserPresence } from "../types/contacts";
+import { useContactsStore } from "./useContactStore";
 
 const UNAUTHENTICATED = null;
 
@@ -14,17 +14,15 @@ type AuthState = {
   isSigningUp: boolean;
   isSigningIn: boolean;
   isSigningOut: boolean;
-  contactsPresence: UserPresence[];
 };
 
-const initialState = {
+const initialState: AuthState = {
   authUser: UNAUTHENTICATED,
   socket: null,
   isCheckingAuth: false,
   isSigningUp: false,
   isSigningIn: false,
   isSigningOut: false,
-  contactsPresence: [],
 };
 
 //these should have DTOs, or at least types that correspond with the backend
@@ -39,7 +37,7 @@ type AuthActions = {
 
 //could also use React's HotToast, that way I don't have to worry about how I'll communicate errors
 //is this appropriate?
-function handleAxiosError(error: unknown) {
+export function handleAxiosError(error: unknown) {
   if (axios.isAxiosError(error)) {
     console.log(error.response?.data.message);
   } else {
@@ -110,9 +108,8 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
 
     set({ socket: socket });
 
-    const res = await axiosInstance.get<PresenceData>("/contact/presence");
+    await useContactsStore.getState().refreshContactsPresence();
 
-    set({ contactsPresence: res.data.contactsPresence });
     //listening for events
     //socket.on()
   },
