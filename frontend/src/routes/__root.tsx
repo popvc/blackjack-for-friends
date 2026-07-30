@@ -1,5 +1,6 @@
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { Toaster } from "react-hot-toast";
 
 const RootLayout = () => (
   <>
@@ -15,6 +16,7 @@ const RootLayout = () => (
       </Link>
     </div>
     <hr />
+    <Toaster/>
     <Outlet />
     <TanStackRouterDevtools />
   </>

@@ -43,10 +43,7 @@ export const remove = async (req: Request, res: Response) => {
 
   res.status(200).json({
     message: "Contact removed",
-    contact: {
-      userId: userId,
-      contactId: contactId,
-    },
+    contactId: contactId,
   });
 };
 
@@ -64,9 +61,9 @@ export const list = async (req: Request, res: Response) => {
 export const presence = async (req: Request, res: Response) => {
   const { userId } = req.user;
 
-const contactsPresence = UserPresence.getContactsPresence(userId)
+  const contactsPresence = UserPresence.getContactsPresence(userId);
 
-  res.status(200).json({message: "Contacts presence retrieved", contactsPresence});
+  res.status(200).json({ message: "Contacts presence retrieved", contactsPresence });
 };
 
 //need to retrieve a list of all contacts details on first connection, names and presence especially.

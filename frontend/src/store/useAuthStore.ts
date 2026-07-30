@@ -1,6 +1,7 @@
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
 import { create } from "zustand";
+import toast from "react-hot-toast";
 import { axiosInstance, BASE_URL } from "../config/axios";
 import type { AuthResponse, AuthUser, LoginData, SignupData } from "../types/auth";
 import { useContactsStore } from "./useContactStore";
@@ -39,9 +40,11 @@ type AuthActions = {
 //is this appropriate?
 export function handleAxiosError(error: unknown) {
   if (axios.isAxiosError(error)) {
+    toast.error(error.response?.data.message || "Server error!");
     console.log(error.response?.data.message);
   } else {
     console.error(error);
+    toast.error("Client error");
   }
 }
 
