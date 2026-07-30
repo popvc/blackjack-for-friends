@@ -6,9 +6,11 @@ import axios from "axios";
 import { create } from "zustand";
 import type { Socket } from "socket.io-client";
 import type {
+  Contact,
   ContactRequest,
   ContactRequestData,
   ContactRequestsListData,
+  ContactsListData,
   ContactTab,
   PresenceData,
   ServerToClientEvents,
@@ -31,10 +33,10 @@ import { axiosInstance } from "../config/axios";
 //type Presence = "online" | "offline";
 
 type ContactsState = {
-  contactsPresence: UserPresence[]; //move this here when convenient
+  contacts: Contact[];
   contactReqs: ContactRequest[];
   contactsTab: ContactTab;
-  isGettingPresence: boolean;
+  isGettingContacts: boolean;
   isReqSending: boolean;
   isReqAccepting: boolean;
   isReqCanceling: boolean;
@@ -42,17 +44,23 @@ type ContactsState = {
 };
 
 const initialState: ContactsState = {
-  contactsPresence: [],
+  contacts: [],
   contactReqs: [],
   contactsTab: "contacts",
-  isGettingPresence: false,
+  isGettingContacts: false,
   isReqSending: false,
   isReqAccepting: false,
   isReqCanceling: false,
 };
 
 type ContactsActions = {
-  refreshContactsPresence: () => Promise<void>;
+  //note to me, the contact/presence endpoint could potentially become quite expensive in the future due to its O(n)/contact
+  // look up time. It may be the case that we create an contact/:id/presence to avoid this, though hopefully at that point
+  // we have a proper Redis store to query instead of the fanout table itself.
+  //Also, yes, I realize we could put username inside the fanout table and save the /contact/list DB hit, but as I mentioned above
+  // getting presence from the fanout table is just a temporary measure, I will have Redis for this eventually and can do that there. 
+
+  refreshContacts: () => Promise<void>;
   refreshContactReqs: () => Promise<void>;
   removeContact: (contactId: UserId) => Promise<void>;
   sendContactReq: (recipientId: UserId) => Promise<void>;
@@ -88,43 +96,55 @@ const handleNewContact = ({ contactRequest }: { contactRequest: ContactRequest }
       .contactReqs.filter((req) => !isSamePair(req, contactRequest)),
   });
 
-  //new contact carries no presence value; refetch to seed it accurately
-  useContactsStore.getState().refreshContactsPresence();
+  //new contact carries no username/presence value yet; refetch to seed it accurately
+  useContactsStore.getState().refreshContacts();
 };
 
 const handleRemovedContact = ({ contactId }: { contactId: UserId }) => {
   useContactsStore.setState({
-    contactsPresence: useContactsStore
+    contacts: useContactsStore
       .getState()
-      .contactsPresence.filter((contact) => contact.userId !== contactId),
+      .contacts.filter((contact) => contact.userId !== contactId),
   });
 };
 
 const handleNewPresence = ({ userId, presence }: UserPresence) => {
   useContactsStore.setState({
-    contactsPresence: useContactsStore
+    contacts: useContactsStore
       .getState()
-      .contactsPresence.map((contact) => (contact.userId === userId ? { ...contact, presence } : contact)),
+      .contacts.map((contact) => (contact.userId === userId ? { ...contact, presence } : contact)),
   });
 };
 
 const handleConnect = () => {
   useContactsStore.getState().refreshContactReqs();
-  useContactsStore.getState().refreshContactsPresence();
+  useContactsStore.getState().refreshContacts();
 };
 
 export const useContactsStore = create<ContactsState & ContactsActions>()((set, get) => ({
   ...initialState,
-  refreshContactsPresence: async () => {
+  refreshContacts: async () => {
     try {
-      set({ isGettingPresence: true });
-      const res = await axiosInstance.get<PresenceData>("/contact/presence");
+      set({ isGettingContacts: true });
+      const [listRes, presenceRes] = await Promise.all([
+        axiosInstance.get<ContactsListData>("/contact/list"),
+        axiosInstance.get<PresenceData>("/contact/presence"),
+      ]);
 
-      set({ contactsPresence: res.data.contactsPresence });
+      const presenceByUserId = new Map(
+        presenceRes.data.contactsPresence.map((p) => [p.userId, p.presence]),
+      );
+
+      set({
+        contacts: listRes.data.contacts.map((c) => ({
+          ...c,
+          presence: presenceByUserId.get(c.userId) ?? "offline",
+        })),
+      });
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
-      set({ isGettingPresence: false });
+      set({ isGettingContacts: false });
     }
   },
   refreshContactReqs: async () => {
@@ -138,7 +158,7 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
   },
   removeContact: async (contactId: UserId) => {
     set({
-      contactsPresence: get().contactsPresence.filter((contact) => contact.userId !== contactId),
+      contacts: get().contacts.filter((contact) => contact.userId !== contactId),
     });
 
     try {
@@ -151,7 +171,7 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
       handleAxiosError(e);
 
       //don't trust the removed snapshot here, reconcile with the server instead of reinserting blindly
-      await get().refreshContactsPresence();
+      await get().refreshContacts();
     }
   },
   sendContactReq: async (recipientId: UserId) => {

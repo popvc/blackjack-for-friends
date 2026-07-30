@@ -11,11 +11,18 @@ export type Presence = "online" | "offline";
 
 export type UserPresence = { userId: UserId; presence: Presence };
 
+export type Contact = { userId: UserId; username: string; presence: Presence };
+
 export type ContactReq = { senderId: UserId; recipientId: UserId };
 
 export interface PresenceData {
   message: string;
   contactsPresence: UserPresence[];
+}
+
+export interface ContactsListData {
+  message: string;
+  contacts: { userId: UserId; username: string }[];
 }
 
 export interface ContactRequestData {
