@@ -4,13 +4,14 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance, BASE_URL } from "../config/axios";
 import type { AuthResponse, AuthUser, LoginData, SignupData } from "../types/auth";
+import type { ServerToClientEvents } from "../types/contacts";
 import { useContactsStore } from "./useContactStore";
 
 const UNAUTHENTICATED = null;
 
 type AuthState = {
   authUser: AuthUser | null;
-  socket: Socket | null;
+  socket: Socket<ServerToClientEvents> | null;
   isCheckingAuth: boolean;
   isSigningUp: boolean;
   isSigningIn: boolean;
@@ -97,26 +98,26 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
       set({ isSigningOut: false });
     }
   },
-  connectSocket: async () => {
+  connectSocket: () => {
     const { authUser } = get();
 
     //not authed, not connected already
     if (!authUser || get().socket?.connected) return;
 
-    const socket = io(BASE_URL, {
+    const socket: Socket<ServerToClientEvents> = io(BASE_URL, {
       withCredentials: true,
     });
 
-    socket.connect();
-
     set({ socket: socket });
 
-    await useContactsStore.getState().refreshContactsPresence();
-
-    //listening for events
-    //socket.on()
+    useContactsStore.getState().bindSocketEvents(socket);
   },
-  disconnectSocket: async () => {
-    if (get().socket?.connect) get().socket?.disconnect();
+  disconnectSocket: () => {
+    const socket = get().socket;
+    if (!socket) return;
+
+    useContactsStore.getState().unbindSocketEvents(socket);
+    if (socket.connected) socket.disconnect();
+    set({ socket: null });
   },
 }));

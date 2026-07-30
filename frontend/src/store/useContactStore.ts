@@ -4,12 +4,14 @@
 
 import axios from "axios";
 import { create } from "zustand";
+import type { Socket } from "socket.io-client";
 import type {
   ContactRequest,
   ContactRequestData,
   ContactRequestsListData,
   ContactTab,
   PresenceData,
+  ServerToClientEvents,
   UserId,
   UserPresence,
 } from "../types/contacts";
@@ -57,6 +59,58 @@ type ContactsActions = {
   acceptContactReq: (senderId: UserId) => Promise<void>;
   rejectContactReq: (senderId: UserId) => Promise<void>;
   cancelContactReq: (recipientId: UserId) => Promise<void>;
+  bindSocketEvents: (socket: Socket<ServerToClientEvents>) => void;
+  unbindSocketEvents: (socket: Socket<ServerToClientEvents>) => void;
+};
+
+const isSamePair = (a: ContactRequest, b: ContactRequest) =>
+  a.senderId === b.senderId && a.recipientId === b.recipientId;
+
+const handleNewContactReq = ({ contactRequest }: { contactRequest: ContactRequest }) => {
+  const { contactReqs } = useContactsStore.getState();
+  if (contactReqs.some((req) => isSamePair(req, contactRequest))) return;
+
+  useContactsStore.setState({ contactReqs: [...contactReqs, contactRequest] });
+};
+
+const handleRemovedContactReq = ({ contactRequest }: { contactRequest: ContactRequest }) => {
+  useContactsStore.setState({
+    contactReqs: useContactsStore
+      .getState()
+      .contactReqs.filter((req) => !isSamePair(req, contactRequest)),
+  });
+};
+
+const handleNewContact = ({ contactRequest }: { contactRequest: ContactRequest }) => {
+  useContactsStore.setState({
+    contactReqs: useContactsStore
+      .getState()
+      .contactReqs.filter((req) => !isSamePair(req, contactRequest)),
+  });
+
+  //new contact carries no presence value; refetch to seed it accurately
+  useContactsStore.getState().refreshContactsPresence();
+};
+
+const handleRemovedContact = ({ contactId }: { contactId: UserId }) => {
+  useContactsStore.setState({
+    contactsPresence: useContactsStore
+      .getState()
+      .contactsPresence.filter((contact) => contact.userId !== contactId),
+  });
+};
+
+const handleNewPresence = ({ userId, presence }: UserPresence) => {
+  useContactsStore.setState({
+    contactsPresence: useContactsStore
+      .getState()
+      .contactsPresence.map((contact) => (contact.userId === userId ? { ...contact, presence } : contact)),
+  });
+};
+
+const handleConnect = () => {
+  useContactsStore.getState().refreshContactReqs();
+  useContactsStore.getState().refreshContactsPresence();
 };
 
 export const useContactsStore = create<ContactsState & ContactsActions>()((set, get) => ({
@@ -91,12 +145,12 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
       await axiosInstance.post(`/contact/${contactId}/remove`);
     } catch (e: unknown) {
       if (axios.isAxiosError(e) && e.response?.status === 404) {
-        return; //already resolved server-side (removed first); desired state already matches
+        return; //already resolved server-side (removed first), desired state already matches
       }
 
       handleAxiosError(e);
 
-      //don't trust the removed snapshot here: reconcile with the server instead of reinserting blindly
+      //don't trust the removed snapshot here, reconcile with the server instead of reinserting blindly
       await get().refreshContactsPresence();
     }
   },
@@ -171,5 +225,21 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
     } finally {
       set({ isReqCanceling: false });
     }
+  },
+  bindSocketEvents: (socket) => {
+    socket.on("connect", handleConnect);
+    socket.on("newContactReq", handleNewContactReq);
+    socket.on("removedContactReq", handleRemovedContactReq);
+    socket.on("newContact", handleNewContact);
+    socket.on("removedContact", handleRemovedContact);
+    socket.on("newPresence", handleNewPresence);
+  },
+  unbindSocketEvents: (socket) => {
+    socket.off("connect", handleConnect);
+    socket.off("newContactReq", handleNewContactReq);
+    socket.off("removedContactReq", handleRemovedContactReq);
+    socket.off("newContact", handleNewContact);
+    socket.off("removedContact", handleRemovedContact);
+    socket.off("newPresence", handleNewPresence);
   },
 }));

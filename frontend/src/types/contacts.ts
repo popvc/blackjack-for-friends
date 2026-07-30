@@ -27,3 +27,11 @@ export interface ContactRequestsListData {
   message: string;
   contactRequests: ContactRequest[];
 }
+
+export interface ServerToClientEvents {
+  newContactReq: (data: { contactRequest: ContactRequest }) => void;
+  removedContactReq: (data: { contactRequest: ContactRequest }) => void;
+  newContact: (data: { contactRequest: ContactRequest }) => void;
+  removedContact: (data: { contactId: UserId }) => void;
+  newPresence: (data: UserPresence) => void;
+}
