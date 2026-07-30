@@ -22,3 +22,8 @@ export interface ContactRequestData {
   message: string;
   contactRequest: ContactRequest;
 }
+
+export interface ContactRequestsListData {
+  message: string;
+  contactRequests: ContactRequest[];
+}

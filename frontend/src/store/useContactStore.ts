@@ -2,10 +2,12 @@
 //send and reject cannot conflict with another user's actions
 //cancel and accept are more likely to fail as the other user can
 
+import axios from "axios";
 import { create } from "zustand";
 import type {
   ContactRequest,
   ContactRequestData,
+  ContactRequestsListData,
   ContactTab,
   PresenceData,
   UserId,
@@ -25,10 +27,6 @@ import { axiosInstance } from "../config/axios";
 
 //TODO (chat): *foundation for session chat groups
 //type Presence = "online" | "offline";
-
-type OptimisticContactReq = ContactRequest & {
-  isOptimistic: boolean;
-};
 
 type ContactsState = {
   contactsPresence: UserPresence[]; //move this here when convenient
@@ -53,6 +51,7 @@ const initialState: ContactsState = {
 
 type ContactsActions = {
   refreshContactsPresence: () => Promise<void>;
+  refreshContactReqs: () => Promise<void>;
   sendContactReq: (data: UserId) => Promise<void>;
   acceptContactReq: (senderId: UserId) => Promise<void>;
   rejectContactReq: (senderId: UserId) => Promise<void>;
@@ -71,6 +70,15 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
       handleAxiosError(e);
     } finally {
       set({ isGettingPresence: false });
+    }
+  },
+  refreshContactReqs: async () => {
+    try {
+      const res = await axiosInstance.get<ContactRequestsListData>("/contact/request/list");
+
+      set({ contactReqs: res.data.contactRequests });
+    } catch (e: unknown) {
+      handleAxiosError(e);
     }
   },
   sendContactReq: async (recipientId: UserId) => {
@@ -108,20 +116,23 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
     }
   },
   rejectContactReq: async (senderId: UserId) => {
-    //const optimisticReq: ContactRequest = {};
+    set({
+      contactReqs: get().contactReqs.filter(
+        (req) => req.senderId !== senderId && req.recipientId !== senderId,
+      ),
+    });
 
     try {
-      const { contactReqs } = get();
-
-      await axiosInstance.post<ContactRequestData>(`/contact/request/${senderId}/reject`);
-
-      set({
-        contactReqs: contactReqs.filter(
-          (req) => req.senderId !== senderId && req.recipientId !== senderId,
-        ),
-      });
+      await axiosInstance.post(`/contact/request/${senderId}/reject`);
     } catch (e: unknown) {
+      if (axios.isAxiosError(e) && e.response?.status === 404) {
+        return; //if action is already resolved server side (cancelled/rejected first)
+      }
+
       handleAxiosError(e);
+
+      //even if an error occurrs, it's possible the desired effect occurs anyways
+      await get().refreshContactReqs();
     }
   },
   cancelContactReq: async (recipientId: UserId) => {
