@@ -52,7 +52,8 @@ const initialState: ContactsState = {
 type ContactsActions = {
   refreshContactsPresence: () => Promise<void>;
   refreshContactReqs: () => Promise<void>;
-  sendContactReq: (data: UserId) => Promise<void>;
+  removeContact: (contactId: UserId) => Promise<void>;
+  sendContactReq: (recipientId: UserId) => Promise<void>;
   acceptContactReq: (senderId: UserId) => Promise<void>;
   rejectContactReq: (senderId: UserId) => Promise<void>;
   cancelContactReq: (recipientId: UserId) => Promise<void>;
@@ -79,6 +80,24 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
       set({ contactReqs: res.data.contactRequests });
     } catch (e: unknown) {
       handleAxiosError(e);
+    }
+  },
+  removeContact: async (contactId: UserId) => {
+    set({
+      contactsPresence: get().contactsPresence.filter((contact) => contact.userId !== contactId),
+    });
+
+    try {
+      await axiosInstance.post(`/contact/${contactId}/remove`);
+    } catch (e: unknown) {
+      if (axios.isAxiosError(e) && e.response?.status === 404) {
+        return; //already resolved server-side (removed first); desired state already matches
+      }
+
+      handleAxiosError(e);
+
+      //don't trust the removed snapshot here: reconcile with the server instead of reinserting blindly
+      await get().refreshContactsPresence();
     }
   },
   sendContactReq: async (recipientId: UserId) => {
