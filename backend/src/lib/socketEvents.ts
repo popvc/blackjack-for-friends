@@ -55,13 +55,13 @@ function acceptContactRequest(pubId: string, subId: string) {
 function rejectContactRequest(pubId: string, subId: string) {
   const contactRequest = { senderId: subId, recipientId: pubId };
 
-  UserPresence.toSocketsOfId(pubId, ContactReqEvent.Removed, { contactRequest });
+  UserPresence.toSocketsOfId(subId, ContactReqEvent.Removed, { contactRequest });
 }
 
 function cancelContactRequest(pubId: string, subId: string) {
   const contactRequest = { senderId: pubId, recipientId: subId };
 
-  UserPresence.toSocketsOfId(pubId, ContactReqEvent.Removed, { contactRequest });
+  UserPresence.toSocketsOfId(subId, ContactReqEvent.Removed, { contactRequest });
 }
 
 function removeContact(pubId: string, subId: string) {

@@ -89,7 +89,7 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
 
   if (p.presence === "offline") p.presence = "online";
 
-  toWatchersOfId(userId, "newPresence", p.presence);
+  toWatchersOfId(userId, "newPresence", { userId: userId, presence: p.presence });
 }
 
 function onSocketDisconnect(socketId: SocketId) {
@@ -119,7 +119,7 @@ function onSocketDisconnect(socketId: SocketId) {
   if (p.presence === newPresence) return;
   p.presence = newPresence;
 
-  toWatchersOfId(userId, "newPresence", newPresence);
+  toWatchersOfId(userId, "newPresence", { userId: userId, presence: newPresence });
 }
 
 function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
@@ -164,14 +164,14 @@ function getContactsPresence(userId: UserId): { userId: UserId; presence: Presen
   if (!userWatchers) return [];
 
   //const userIdPresence = new Map<UserId, Presence>();
-  const userIdPresence: { userId: UserId; presence: Presence }[] = [];
+  const contactIdPresence: { userId: UserId; presence: Presence }[] = [];
   userWatchers.forEach((contactId) => {
-    const p = presenceByUser.get(userId);
-    const userPresence: Presence = p?.presence ? p.presence : "offline";
-    userIdPresence.push({ userId: userId, presence: userPresence });
+    const p = presenceByUser.get(contactId);
+    const contactPresence: Presence = (p && p.presence) ? p.presence : "offline";
+    contactIdPresence.push({ userId: contactId, presence: contactPresence });
   });
 
-  return userIdPresence;
+  return contactIdPresence;
 }
 
 function isUserConnected(userId: UserId): boolean {

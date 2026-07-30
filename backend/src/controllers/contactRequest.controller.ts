@@ -112,7 +112,7 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
-  SocketEvent.acceptContactRequest(senderId, recipientId);
+  SocketEvent.acceptContactRequest(recipientId, senderId);
 
   res.status(201).json({
     message: "Contact request accepted",
@@ -155,7 +155,7 @@ export const reject = async (req: Request, res: Response) => {
     );
   }
 
-  SocketEvent.rejectContactRequest(senderId, recipientId);
+  SocketEvent.rejectContactRequest(recipientId, senderId);
 
   res.status(200).json({
     message: "Contact request rejected",
