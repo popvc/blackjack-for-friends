@@ -83,7 +83,7 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
   const watchedList = watchersByUser.get(userId);
   if (!watchedList) {
     watchersByUser.set(userId, new Set<UserId>());
-    const contactList = await ProfileService.getContacts(userId);
+    const contactList = await ProfileService.getContactIds(userId);
     createWatcherList(userId, contactList);
   }
 

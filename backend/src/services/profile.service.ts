@@ -78,9 +78,19 @@ async function removeContact(senderId: string, recipientId: string): Promise<boo
   });
 }
 
-async function getContacts(userId: string): Promise<string[]> {
+async function getContactIds(userId: string): Promise<string[]> {
   const profile = await Profile.findOne({ userId }).select("contactsId").lean();
   return profile?.contactsId ?? [];
+}
+
+async function getContacts(userId: string): Promise<{ userId: string; username: string }[]> {
+  const contactsId = await getContactIds(userId);
+
+  if (!contactsId.length) return [];
+
+  return await Profile.find({ userId: { $in: contactsId } })
+    .select("userId username -_id")
+    .lean();
 }
 
 export const ProfileService = {
@@ -89,6 +99,7 @@ export const ProfileService = {
   isValidId,
   isContactAdded,
   checkCredentials,
+  getContactIds,
   removeContact,
   getContacts,
 };
