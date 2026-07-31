@@ -61,7 +61,10 @@ export const list = async (req: Request, res: Response) => {
 export const presence = async (req: Request, res: Response) => {
   const { userId } = req.user;
 
-  const contactsPresence = UserPresence.getContactsPresence(userId);
+  const contactIds = await ProfileService.getContacts(userId);
+
+  const contactsPresence = UserPresence.getAllUserPresence(contactIds);
+  
 
   res.status(200).json({ message: "Contacts presence retrieved", contactsPresence });
 };

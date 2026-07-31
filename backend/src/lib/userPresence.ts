@@ -24,6 +24,7 @@ import { ProfileService } from "../services/profile.service";
 //Need to track who to send status updates to whoever their current acquaitances are
 type UserId = string;
 type SocketId = string;
+type User = { userId: UserId; username: string };
 
 //offline might only reference how the user wishes to appear to others, activeSockets is a more accurate source of truth
 //type Presence = "online" | "offline" | "dnd" | "away" | "idle";
@@ -158,20 +159,30 @@ function removeWatcherList(userId: UserId) {
 }
 
 //Source of truth is based on in-memory watcher list, not DB
-function getContactsPresence(userId: UserId): { userId: UserId; presence: Presence }[] {
-  const userWatchers = watchersByUser.get(userId);
-
-  if (!userWatchers) return [];
+function getAllUserPresence(
+  usersId: User[],
+): { userId: UserId; username: string; presence: Presence }[] | undefined {
+  if (!usersId.length) return;
 
   //const userIdPresence = new Map<UserId, Presence>();
-  const contactIdPresence: { userId: UserId; presence: Presence }[] = [];
-  userWatchers.forEach((contactId) => {
-    const p = presenceByUser.get(contactId);
-    const contactPresence: Presence = (p && p.presence) ? p.presence : "offline";
-    contactIdPresence.push({ userId: contactId, presence: contactPresence });
+  const contactPresence: { userId: UserId; username: string; presence: Presence }[] = [];
+  usersId.forEach((user) => {
+    const p = presenceByUser.get(user.userId);
+    const presence: Presence = p && p.presence ? p.presence : "offline";
+    contactPresence.push({
+      userId: user.userId,
+      username: user.username,
+      presence: presence,
+    });
   });
 
-  return contactIdPresence;
+  return contactPresence;
+}
+
+function getUserPresence(user: User): { userId: UserId; username: string; presence: Presence } {
+  const p = presenceByUser.get(user.userId);
+  const presence: Presence = p && p.presence ? p.presence : "offline";
+  return { userId: user.userId, username: user.username, presence: presence };
 }
 
 function isUserConnected(userId: UserId): boolean {
@@ -186,7 +197,8 @@ function isUserConnected(userId: UserId): boolean {
 export const UserPresence = {
   onSocketConnect,
   onSocketDisconnect,
-  getContactsPresence,
+  getAllUserPresence,
+  getUserPresence,
   addWatcher,
   removeWatcher,
   toWatchersOfId,
