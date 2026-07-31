@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import { ContactReqService } from "../services/contactReq.service";
 import { ProfileService } from "../services/profile.service";
 import { SocketEvent } from "../lib/socketEvents";
+import { UserPresence } from "../lib/userPresence";
 
 export const send = async (req: Request, res: Response) => {
   const result = ContactIdDto.safeParse(req.params.id);
@@ -91,6 +92,7 @@ export const accept = async (req: Request, res: Response) => {
 
   const senderId = result.data;
   const recipientId = req.user.userId;
+  const recipientName = req.user.username;
 
   if (recipientId === senderId) {
     return res.status(400).json(
@@ -112,7 +114,26 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
-  SocketEvent.acceptContactRequest(recipientId, senderId);
+  const senderName = await ProfileService.getUsername(senderId);
+
+  //this would only trigger on the unlikely race condition where the sender of the request deletes their account 
+  // right as another user accepts a friend request from them.
+  // I'm just going to throw an error for now. Worst case is, after the request is accepted 
+  // (which deletes it; not a problem, was going to happen anyways) then http 500 error triggers a refresh for whomever accepted it.
+  // The server deletes the contact from the accepting user's DB contactslist before any update to the UI can happen. No one is the wiser.
+  // It would make more sense to return a 404, but this feels too hacky. 
+  // Fixing this, still wouldn't fix the stale UI if the account was deleted or changed their name AFTER getUsername is called successfully
+  // but that's what the regular contact presence refreshes are for.
+  if (!senderName) {
+    throw new Error(
+      "ContactRequest Accept controller: could not find sender's username after successful request",
+    );
+  }
+
+  const newContact = SocketEvent.acceptContactRequest(
+    { userId: recipientId, username: recipientName },
+    { userId: senderId, username: senderName },
+  );
 
   res.status(201).json({
     message: "Contact request accepted",
@@ -120,6 +141,7 @@ export const accept = async (req: Request, res: Response) => {
       senderId: senderId,
       recipientId: recipientId,
     },
+    newContact,
   });
 };
 

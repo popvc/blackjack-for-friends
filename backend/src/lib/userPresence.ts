@@ -185,6 +185,25 @@ function getUserPresence(user: User): { userId: UserId; username: string; presen
   return { userId: user.userId, username: user.username, presence: presence };
 }
 
+function addContact(userId: UserId, contactId: UserId) {
+  //need to check if user is online
+  const u = watchersByUser.get(userId);
+  if (u) {
+    u.add(contactId);
+  }
+
+  //need to check if contact is online
+  const c = watchersByUser.get(contactId);
+  if (c) {
+    c.add(userId);
+  }
+}
+
+function removeContact(userId: UserId, contactId: UserId) {
+  UserPresence.removeWatcher(userId, contactId);
+  UserPresence.removeWatcher(contactId, userId);
+}
+
 function isUserConnected(userId: UserId): boolean {
   const userPresence = presenceByUser.get(userId);
 
@@ -199,6 +218,8 @@ export const UserPresence = {
   onSocketDisconnect,
   getAllUserPresence,
   getUserPresence,
+  removeContact,
+  addContact,
   addWatcher,
   removeWatcher,
   toWatchersOfId,

@@ -18,7 +18,12 @@ enum ContactReqEvent {
   Cancel = "cancelContactReq",
 }
 */
-//okay this probably doesn't need a new event type for every actions
+//okay this probably doesn't need a new event type for every action
+
+type User = {
+  userId: string;
+  username: string;
+};
 
 enum ContactReqEvent {
   New = "newContactReq",
@@ -43,13 +48,17 @@ function sendContactRequest(pubId: string, subId: string) {
   UserPresence.toSocketsOfId(subId, ContactReqEvent.New, { contactRequest });
 }
 
-function acceptContactRequest(pubId: string, subId: string) {
-  UserPresence.addWatcher(pubId, subId);
-  UserPresence.addWatcher(subId, pubId);
+function acceptContactRequest(pub: User, sub: User): User {
+  UserPresence.addContact(pub.userId, sub.userId);
 
-  const contactRequest = { senderId: subId, recipientId: pubId };
+  const contactRequest = { senderId: sub.userId, recipientId: pub.userId };
 
-  UserPresence.toSocketsOfId(subId, ContactEvent.New, { contactRequest });
+  const forPub = UserPresence.getUserPresence(pub);
+  const forSub = UserPresence.getUserPresence(sub);
+
+  UserPresence.toSocketsOfId(sub.userId, ContactEvent.New, { contactRequest, newContact: forSub });
+
+  return forPub;
 }
 
 function rejectContactRequest(pubId: string, subId: string) {
@@ -65,8 +74,7 @@ function cancelContactRequest(pubId: string, subId: string) {
 }
 
 function removeContact(pubId: string, subId: string) {
-  UserPresence.removeWatcher(pubId, subId);
-  UserPresence.removeWatcher(subId, pubId);
+  UserPresence.removeContact(pubId, subId);
 
   UserPresence.toSocketsOfId(subId, ContactEvent.Removed, { contactId: pubId });
 }

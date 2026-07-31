@@ -93,6 +93,11 @@ async function getContacts(userId: string): Promise<{ userId: string; username: 
     .lean();
 }
 
+async function getUsername(userId: string): Promise<string | undefined> {
+  const user = await Profile.findOne({ userId }).select("username");
+  return user?.username;
+}
+
 export const ProfileService = {
   isUniqueEmail,
   isUniqueUsername,
@@ -102,4 +107,5 @@ export const ProfileService = {
   getContactIds,
   removeContact,
   getContacts,
+  getUsername,
 };
