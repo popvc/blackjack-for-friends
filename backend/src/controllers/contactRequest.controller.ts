@@ -6,7 +6,6 @@ import mongoose from "mongoose";
 import { ContactReqService } from "../services/contactReq.service";
 import { ProfileService } from "../services/profile.service";
 import { SocketEvent } from "../lib/socketEvents";
-import { UserPresence } from "../lib/userPresence";
 
 export const send = async (req: Request, res: Response) => {
   const result = ContactIdDto.safeParse(req.params.id);
@@ -17,6 +16,7 @@ export const send = async (req: Request, res: Response) => {
 
   const recipientId = result.data;
   const senderId = req.user.userId;
+  const senderName = req.user.username;
 
   if (senderId === recipientId) {
     return res.status(400).json(
@@ -54,6 +54,7 @@ export const send = async (req: Request, res: Response) => {
     lowId: senderId,
     highId: recipientId,
     senderId: senderId,
+    senderName: senderName,
   });
 
   try {
@@ -103,7 +104,7 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
-  const acceptResult = await ContactReqService.acceptContactRequest(recipientId, senderId);
+  const acceptResult = await ContactReqService.acceptContactRequest(senderId, recipientId);
 
   if (!acceptResult) {
     return res.status(404).json(
@@ -116,13 +117,13 @@ export const accept = async (req: Request, res: Response) => {
 
   const senderName = await ProfileService.getUsername(senderId);
 
-  //this would only trigger on the unlikely race condition where the sender of the request deletes their account 
+  //this would only trigger on the unlikely race condition where the sender of the request deletes their account
   // right as another user accepts a friend request from them.
-  // I'm just going to throw an error for now. Worst case is, after the request is accepted 
+  // I'm just going to throw an error for now. Worst case is, after the request is accepted
   // (which deletes it; not a problem, was going to happen anyways) then http 500 error triggers a refresh for whomever accepted it.
   // The server deletes the contact from the accepting user's DB contactslist before any update to the UI can happen. No one is the wiser.
-  // It would make more sense to return a 404, but this feels too hacky. 
-  // Fixing this, still wouldn't fix the stale UI if the account was deleted or changed their name AFTER getUsername is called successfully
+  // It would make more sense to return a 404, but this feels too hacky.
+  // Fixing this still wouldn't fix the stale UI if the account was deleted or changed their name AFTER getUsername is called successfully
   // but that's what the regular contact presence refreshes are for.
   if (!senderName) {
     throw new Error(
@@ -239,6 +240,6 @@ export const list = async (req: Request, res: Response) => {
 
   res.status(200).json({
     message: "Contact requests retrieved",
-    contactRequests: requests,
+    contactRequests: requests ? requests : [],
   });
 };

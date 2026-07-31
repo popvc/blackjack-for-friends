@@ -6,10 +6,12 @@ export interface IContactRequest {
   lowId: string;
   highId: string;
   senderId: string;
+  senderName: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
+//might be better to include the recipient id too, that way we don't have to compute it on every single retrieval
 const contactRequestSchema = new mongoose.Schema<IContactRequest>(
   {
     lowId: {
@@ -23,6 +25,10 @@ const contactRequestSchema = new mongoose.Schema<IContactRequest>(
     senderId: {
       type: String,
       required: true,
+    },
+    senderName: {
+      type: String,
+      require: true,
     },
   },
   { timestamps: true },

@@ -53,8 +53,8 @@ function acceptContactRequest(pub: User, sub: User): User {
 
   const contactRequest = { senderId: sub.userId, recipientId: pub.userId };
 
-  const forPub = UserPresence.getUserPresence(pub);
-  const forSub = UserPresence.getUserPresence(sub);
+  const forSub = UserPresence.getUserPresence(pub);
+  const forPub = UserPresence.getUserPresence(sub);
 
   UserPresence.toSocketsOfId(sub.userId, ContactEvent.New, { contactRequest, newContact: forSub });
 

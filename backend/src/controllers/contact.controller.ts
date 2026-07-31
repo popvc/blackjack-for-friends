@@ -64,9 +64,13 @@ export const presence = async (req: Request, res: Response) => {
   const contactIds = await ProfileService.getContacts(userId);
 
   const contactsPresence = UserPresence.getAllUserPresence(contactIds);
-  
 
-  res.status(200).json({ message: "Contacts presence retrieved", contactsPresence });
+  res
+    .status(200)
+    .json({
+      message: "Contacts presence retrieved",
+      contactsPresence: contactsPresence ? contactsPresence : [],
+    });
 };
 
 //need to retrieve a list of all contacts details on first connection, names and presence especially.

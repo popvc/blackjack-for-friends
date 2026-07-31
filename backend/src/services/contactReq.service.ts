@@ -49,15 +49,16 @@ async function deleteContactRequest(senderId: string, recipientId: string): Prom
 
 async function getContactRequests(
   userId: string,
-): Promise<{ senderId: string; recipientId: string }[]> {
+): Promise<{ senderId: string; recipientId: string; senderName: string }[]> {
   const requests = await ContactRequest.find({
     $or: [{ lowId: userId }, { highId: userId }],
   }).lean();
 
   //senderId is always one of lowId/highId; recipientId is whichever one it isn't
-  return requests.map(({ lowId, highId, senderId }) => ({
+  return requests.map(({ lowId, highId, senderId, senderName }) => ({
     senderId,
     recipientId: senderId === lowId ? highId : lowId,
+    senderName,
   }));
 }
 
