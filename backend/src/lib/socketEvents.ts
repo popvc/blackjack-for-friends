@@ -20,8 +20,6 @@ enum ContactReqEvent {
 */
 //okay this probably doesn't need a new event type for every actions
 
-type User = { userId: string; username: string };
-
 enum ContactReqEvent {
   New = "newContactReq",
   Removed = "removedContactReq",
@@ -31,10 +29,6 @@ enum ContactEvent {
   New = "newContact",
   Removed = "removedContact",
 }
-
-// ***********************************************************************************************************************
-//WARNING: Any DB changes related to a SocketEvent must be completed BEFORE a SocketEvent is called to prevent race conditions.
-// ***********************************************************************************************************************
 
 //subId can be a bit confusing, it isn't refering to a watcher, but anyone subscribed to this event type
 //I think pubId might cause some issues as technically the server is emitting these events, not whoever submitted it to the server
@@ -49,21 +43,13 @@ function sendContactRequest(pubId: string, subId: string) {
   UserPresence.toSocketsOfId(subId, ContactReqEvent.New, { contactRequest });
 }
 
-//returns the sub's presence
-function acceptContactRequest(pub: User, sub: User): string | undefined {
-  UserPresence.addContact(pub, sub);
+function acceptContactRequest(pubId: string, subId: string) {
+  UserPresence.addWatcher(pubId, subId);
+  UserPresence.addWatcher(subId, pubId);
 
-  const contactRequest = { senderId: sub.userId, recipientId: pub.userId };
-  const newContact = UserPresence.getContactPresence(pub.userId, sub.userId);
+  const contactRequest = { senderId: subId, recipientId: pubId };
 
-  UserPresence.toSocketsOfId(sub.userId, ContactEvent.New, { contactRequest, newContact });
-
-  const p = UserPresence.getContactPresence(sub.userId, pub.userId);
-
-  if (p && p.presence) {
-    return p.presence;
-  }
-  return;
+  UserPresence.toSocketsOfId(subId, ContactEvent.New, { contactRequest });
 }
 
 function rejectContactRequest(pubId: string, subId: string) {
@@ -79,7 +65,8 @@ function cancelContactRequest(pubId: string, subId: string) {
 }
 
 function removeContact(pubId: string, subId: string) {
-  UserPresence.removeContact(pubId, subId);
+  UserPresence.removeWatcher(pubId, subId);
+  UserPresence.removeWatcher(subId, pubId);
 
   UserPresence.toSocketsOfId(subId, ContactEvent.Removed, { contactId: pubId });
 }

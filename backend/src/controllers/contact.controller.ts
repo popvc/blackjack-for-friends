@@ -63,18 +63,6 @@ export const presence = async (req: Request, res: Response) => {
 
   const contactsPresence = UserPresence.getContactsPresence(userId);
 
-  if (!contactsPresence) {
-    return res.status(400).json({
-      message: "Failed to retrieve contacts presence!",
-      issue: [
-        {
-          detail: "Requesting user must be online to retrieve contacts' presence",
-          pointer: "null",
-        },
-      ],
-    });
-  }
-
   res.status(200).json({ message: "Contacts presence retrieved", contactsPresence });
 };
 

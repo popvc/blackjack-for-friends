@@ -91,7 +91,6 @@ export const accept = async (req: Request, res: Response) => {
 
   const senderId = result.data;
   const recipientId = req.user.userId;
-  const recipientName = req.user.userId;
 
   if (recipientId === senderId) {
     return res.status(400).json(
@@ -113,34 +112,13 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
-  const senderName = await ProfileService.getUsername(senderId);
-
-  if (!senderName) {
-    throw new Error("ContactRequest: Accepted username not found");
-  }
-
-  //
-  let senderPresence = SocketEvent.acceptContactRequest(
-    { userId: recipientId, username: recipientName },
-    { userId: senderId, username: senderName },
-  );
-
-  //cannot receive another user's presence if they aren't connected to the socket server
-  //for now I'm just going to default any presence updates to "offline"
-  if (!senderPresence) {
-    senderPresence = "offline";
-  }
+  SocketEvent.acceptContactRequest(recipientId, senderId);
 
   res.status(201).json({
     message: "Contact request accepted",
     contactRequest: {
       senderId: senderId,
       recipientId: recipientId,
-    },
-    newContact: {
-      userId: senderId,
-      username: senderName,
-      presence: senderPresence,
     },
   });
 };

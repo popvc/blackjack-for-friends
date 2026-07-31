@@ -23,12 +23,7 @@ import { ProfileService } from "../services/profile.service";
 
 //Need to track who to send status updates to whoever their current acquaitances are
 type UserId = string;
-type Username = string;
 type SocketId = string;
-
-type User = { userId: UserId; username: Username };
-
-//type User = {userId: UserId, username: string}
 
 //offline might only reference how the user wishes to appear to others, activeSockets is a more accurate source of truth
 //type Presence = "online" | "offline" | "dnd" | "away" | "idle";
@@ -39,22 +34,10 @@ interface UserPresence {
   presence: Presence;
 }
 
-// ***********************************************************************************************************************
-//WARNING:
-//contacts list is based off of a in-memory contacts list that is initially copied from DB, then updated and kept in sync by
-// the controllers. Improper uses of these functions may cause stale data and break synchronization with the DB, which is the
-// intended source of truth for the fanout list.
-// ***********************************************************************************************************************
-//The only functions intended for use outside of this file or socketEvents.ts are:
-//  getContactsPresence,
-//  getContactPresence,
-//  onSocketConnect,
-//  onSocketDisconnect,
-
 const presenceByUser = new Map<UserId, UserPresence>();
 const connectedSockets = new Map<SocketId, UserId>();
 //user visibility relationship cache
-const watchersByUser = new Map<UserId, Map<UserId, Username>>();
+const watchersByUser = new Map<UserId, Set<UserId>>();
 
 function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
   const userSockets = presenceByUser.get(userId);
@@ -69,9 +52,9 @@ function toWatchersOfId(userId: UserId, event: any, ...args: any[]) {
   const userWatchers = watchersByUser.get(userId);
   if (!userWatchers || !watchersByUser.size) return;
 
-  userWatchers.forEach((_, userId) => {
-    toSocketsOfId(userId, event, ...args);
-  });
+  for (const watcherId of userWatchers) {
+    toSocketsOfId(watcherId, event, ...args);
+  }
 }
 
 function upsertPresence(userId: UserId): UserPresence {
@@ -99,8 +82,8 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
 
   const watchedList = watchersByUser.get(userId);
   if (!watchedList) {
-    watchersByUser.set(userId, new Map<UserId, Username>());
-    const contactList = await ProfileService.getContacts(userId);
+    watchersByUser.set(userId, new Set<UserId>());
+    const contactList = await ProfileService.getContactIds(userId);
     createWatcherList(userId, contactList);
   }
 
@@ -139,14 +122,14 @@ function onSocketDisconnect(socketId: SocketId) {
   toWatchersOfId(userId, "newPresence", { userId: userId, presence: newPresence });
 }
 
-function addWatcher(contactOwner: User, watchedUserId: UserId) {
+function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   let set = watchersByUser.get(watchedUserId);
   if (!set) {
     console.error("watchedUser Set not found, failed to add watcher");
     return;
   }
 
-  set.set(contactOwner.userId, contactOwner.username);
+  set.add(contactOwnerId);
 }
 
 function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
@@ -159,85 +142,36 @@ function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
 }
 
 //possibly race condition?
-async function createWatcherList(userId: UserId, contactList: User[]) {
+async function createWatcherList(userId: UserId, contactList: UserId[]) {
   if (!contactList.length) return;
 
-  contactList.forEach((contact) => {
-    addWatcher(contact, userId);
+  contactList.forEach((contactId) => {
+    addWatcher(contactId, userId);
   });
 }
 
 function removeWatcherList(userId: UserId) {
   let result = watchersByUser.delete(userId);
   if (!result) {
-    console.error("watchedUser Set not found, failed to remove Set");
+    console.error("watchedUser Set not found, failed to delete");
   }
 }
 
-//undefined indicates userId (the requesting user) is not online and therefore cannot request other uses presence
-//contacts list is based off of a in-memory contacts list that is initially copied from DB, then updated and kept in sync by
-// the controllers. Improper uses of these functions may break synchronization with the DB.
-function getContactsPresence(
-  userId: UserId,
-): { userId: UserId; username: Username; presence: Presence }[] | undefined {
+//Source of truth is based on in-memory watcher list, not DB
+function getContactsPresence(userId: UserId): { userId: UserId; presence: Presence }[] {
   const userWatchers = watchersByUser.get(userId);
 
-  if (!userWatchers) {
-    console.log("watchersByUser: user must be online to request contact's presence");
-    return;
-  }
+  if (!userWatchers) return [];
 
   //const userIdPresence = new Map<UserId, Presence>();
-  const contactIdPresence: { userId: UserId; username: Username; presence: Presence }[] = [];
-  userWatchers.forEach((username, userId) => {
-    const p = presenceByUser.get(userId);
-    const presence: Presence = p && p.presence ? p.presence : "offline";
-    contactIdPresence.push({ userId: userId, username: username, presence: presence });
+  const contactIdPresence: { userId: UserId; presence: Presence }[] = [];
+  userWatchers.forEach((contactId) => {
+    const p = presenceByUser.get(contactId);
+    const contactPresence: Presence = (p && p.presence) ? p.presence : "offline";
+    contactIdPresence.push({ userId: contactId, presence: contactPresence });
   });
 
   return contactIdPresence;
-}
-
-//undefined indicates userId (the requesting user) is not online and therefore cannot request other uses presence
-//the second one shouldn't ever occur and it's be confusing for it to also return undefined
-function getContactPresence(
-  userId: UserId,
-  contactId: UserId,
-): { userId: UserId; username: Username; presence: Presence } | undefined {
-  const p = presenceByUser.get(contactId);
-  const presence: Presence = p && p.presence ? p.presence : "offline";
-
-  const set = watchersByUser.get(userId);
-
-  if (!set) {
-    console.log("watchersByUser: user must be online to request contact's presence");
-    return;
-  }
-  let u = set.get(contactId);
-  if (!u) {
-    console.error("watchersByUser: watcher username not found");
-    throw new Error("watchersByUser: watcher username not found");
-  }
-  return { userId: contactId, username: u, presence: presence };
-}
-
-function addContact(user: User, contact: User) {
-  //need to check if user is online
-  const u = watchersByUser.get(user.userId);
-  if (u) {
-    u.set(contact.userId, contact.username);
-  }
-
-  //need to check if contact is online
-  const c = watchersByUser.get(contact.userId);
-  if (c) {
-    c.set(user.userId, user.username);
-  }
-}
-
-function removeContact(userId: UserId, contactId: UserId) {
-  UserPresence.removeWatcher(userId, contactId);
-  UserPresence.removeWatcher(contactId, userId);
 }
 
 function isUserConnected(userId: UserId): boolean {
@@ -252,12 +186,9 @@ function isUserConnected(userId: UserId): boolean {
 export const UserPresence = {
   onSocketConnect,
   onSocketDisconnect,
+  getContactsPresence,
   addWatcher,
   removeWatcher,
   toWatchersOfId,
   toSocketsOfId,
-  getContactsPresence,
-  getContactPresence,
-  addContact,
-  removeContact,
 };
