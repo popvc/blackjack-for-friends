@@ -6,6 +6,7 @@ import axios from "axios";
 import { create } from "zustand";
 import type { Socket } from "socket.io-client";
 import type {
+  Contact,
   ContactRequest,
   ContactRequestData,
   ContactRequestsListData,
@@ -31,10 +32,10 @@ import { axiosInstance } from "../config/axios";
 //type Presence = "online" | "offline";
 
 type ContactsState = {
-  contactsPresence: UserPresence[]; //move this here when convenient
+  contactsList: Contact[];
   contactReqs: ContactRequest[];
   contactsTab: ContactTab;
-  isGettingPresence: boolean;
+  isGettingContacts: boolean;
   isReqSending: boolean;
   isReqAccepting: boolean;
   isReqCanceling: boolean;
@@ -42,17 +43,17 @@ type ContactsState = {
 };
 
 const initialState: ContactsState = {
-  contactsPresence: [],
+  contactsList: [],
   contactReqs: [],
   contactsTab: "contacts",
-  isGettingPresence: false,
+  isGettingContacts: false,
   isReqSending: false,
   isReqAccepting: false,
   isReqCanceling: false,
 };
 
 type ContactsActions = {
-  refreshContactsPresence: () => Promise<void>;
+  refreshContactsList: () => Promise<void>;
   refreshContactReqs: () => Promise<void>;
   removeContact: (contactId: UserId) => Promise<void>;
   sendContactReq: (recipientId: UserId) => Promise<void>;
@@ -81,50 +82,54 @@ const handleRemovedContactReq = ({ contactRequest }: { contactRequest: ContactRe
   });
 };
 
-const handleNewContact = ({ contactRequest }: { contactRequest: ContactRequest }) => {
+const handleNewContact = ({
+  contactRequest,
+  newContact,
+}: {
+  contactRequest: ContactRequest;
+  newContact: Contact;
+}) => {
   useContactsStore.setState({
     contactReqs: useContactsStore
       .getState()
       .contactReqs.filter((req) => !isSamePair(req, contactRequest)),
+    contactsList: [...useContactsStore.getState().contactsList, newContact],
   });
-
-  //new contact carries no presence value; refetch to seed it accurately
-  useContactsStore.getState().refreshContactsPresence();
 };
 
 const handleRemovedContact = ({ contactId }: { contactId: UserId }) => {
   useContactsStore.setState({
-    contactsPresence: useContactsStore
+    contactsList: useContactsStore
       .getState()
-      .contactsPresence.filter((contact) => contact.userId !== contactId),
+      .contactsList.filter((contact) => contact.userId !== contactId),
   });
 };
 
 const handleNewPresence = ({ userId, presence }: UserPresence) => {
   useContactsStore.setState({
-    contactsPresence: useContactsStore
+    contactsList: useContactsStore
       .getState()
-      .contactsPresence.map((contact) => (contact.userId === userId ? { ...contact, presence } : contact)),
+      .contactsList.map((contact) => (contact.userId === userId ? { ...contact, presence } : contact)),
   });
 };
 
 const handleConnect = () => {
   useContactsStore.getState().refreshContactReqs();
-  useContactsStore.getState().refreshContactsPresence();
+  useContactsStore.getState().refreshContactsList();
 };
 
 export const useContactsStore = create<ContactsState & ContactsActions>()((set, get) => ({
   ...initialState,
-  refreshContactsPresence: async () => {
+  refreshContactsList: async () => {
     try {
-      set({ isGettingPresence: true });
+      set({ isGettingContacts: true });
       const res = await axiosInstance.get<PresenceData>("/contact/presence");
 
-      set({ contactsPresence: res.data.contactsPresence });
+      set({ contactsList: res.data.contactsPresence });
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
-      set({ isGettingPresence: false });
+      set({ isGettingContacts: false });
     }
   },
   refreshContactReqs: async () => {
@@ -138,7 +143,7 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
   },
   removeContact: async (contactId: UserId) => {
     set({
-      contactsPresence: get().contactsPresence.filter((contact) => contact.userId !== contactId),
+      contactsList: get().contactsList.filter((contact) => contact.userId !== contactId),
     });
 
     try {
@@ -151,7 +156,7 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
       handleAxiosError(e);
 
       //don't trust the removed snapshot here, reconcile with the server instead of reinserting blindly
-      await get().refreshContactsPresence();
+      await get().refreshContactsList();
     }
   },
   sendContactReq: async (recipientId: UserId) => {
@@ -173,14 +178,17 @@ export const useContactsStore = create<ContactsState & ContactsActions>()((set, 
   acceptContactReq: async (senderId: UserId) => {
     try {
       set({ isReqAccepting: true });
-      const { contactReqs } = get();
+      const { contactReqs, contactsList } = get();
 
-      await axiosInstance.post<ContactRequestData>(`/contact/request/${senderId}/accept`);
+      const res = await axiosInstance.post<ContactRequestData>(
+        `/contact/request/${senderId}/accept`,
+      );
 
       set({
         contactReqs: contactReqs.filter(
           (req) => req.senderId !== senderId && req.recipientId !== senderId,
         ),
+        contactsList: res.data.newContact ? [...contactsList, res.data.newContact] : contactsList,
       });
     } catch (e: unknown) {
       handleAxiosError(e);
