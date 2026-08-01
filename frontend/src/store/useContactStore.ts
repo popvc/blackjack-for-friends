@@ -82,17 +82,8 @@ const handleRemovedContactReq = ({ contactRequest }: { contactRequest: ContactRe
   });
 };
 
-const handleNewContact = ({
-  contactRequest,
-  newContact,
-}: {
-  contactRequest: ContactRequest;
-  newContact: Contact;
-}) => {
+const handleNewContact = ({ newContact }: { newContact: Contact }) => {
   useContactsStore.setState({
-    contactReqs: useContactsStore
-      .getState()
-      .contactReqs.filter((req) => !isSamePair(req, contactRequest)),
     contactsList: [...useContactsStore.getState().contactsList, newContact],
   });
 };
@@ -176,22 +167,21 @@ export const useContactsStore = create<ContactsState & ContactsFuncts>()((set, g
     }
   },
   acceptContactReq: async (senderId: UserId) => {
+    set({
+      contactReqs: get().contactReqs.filter(
+        (req) => req.senderId !== senderId && req.recipientId !== senderId,
+      ),
+    });
+
     try {
       set({ isReqAccepting: true });
-      const { contactReqs, contactsList } = get();
-
-      const res = await axiosInstance.post<ContactRequestData>(
-        `/contact/request/${senderId}/accept`,
-      );
-
-      set({
-        contactReqs: contactReqs.filter(
-          (req) => req.senderId !== senderId && req.recipientId !== senderId,
-        ),
-        contactsList: res.data.newContact ? [...contactsList, res.data.newContact] : contactsList,
-      });
+      await axiosInstance.post(`/contact/request/${senderId}/accept`);
     } catch (e: unknown) {
       handleAxiosError(e);
+
+      //we no longer know locally whether the contact was actually added, reconcile both from the server
+      await get().refreshContactReqs();
+      await get().refreshContactsList();
     } finally {
       set({ isReqAccepting: false });
     }

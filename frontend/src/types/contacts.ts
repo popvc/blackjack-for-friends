@@ -27,7 +27,6 @@ export interface PresenceData {
 export interface ContactRequestData {
   message: string;
   contactRequest: ContactRequest;
-  newContact?: Contact;
 }
 
 export interface ContactRequestsListData {
@@ -38,7 +37,7 @@ export interface ContactRequestsListData {
 export interface ServerToClientEvents {
   newContactReq: (data: { contactRequest: ContactRequest }) => void;
   removedContactReq: (data: { contactRequest: ContactRequest }) => void;
-  newContact: (data: { contactRequest: ContactRequest; newContact: Contact }) => void;
+  newContact: (data: { newContact: Contact }) => void;
   removedContact: (data: { contactId: UserId }) => void;
   newPresence: (data: UserPresence) => void;
 }

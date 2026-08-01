@@ -7,6 +7,7 @@ import { useAuthStore } from "../store/useAuthStore";
 const RootLayout = () => {
   const { checkAuth } = useAuthStore();
 
+  //this needs to NOT run on pages that don't require authentication
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
@@ -25,8 +26,8 @@ const RootLayout = () => {
         </Link>
       </div>
       <hr />
-      <Toaster />
       <Outlet />
+      <Toaster />
       <TanStackRouterDevtools />
     </>
   );
