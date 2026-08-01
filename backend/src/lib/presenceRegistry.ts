@@ -29,7 +29,8 @@ type UserId = string;
 type SocketId = string;
 type User = { userId: UserId; username: string };
 
-//offline might only reference how the user wishes to appear to others, activeSockets is a more accurate source of truth
+//offline might only reference how the user wishes to appear to others.
+// When I add user selectable custom presence options, activeSockets.size will be the only accurate source of truth for whether a user is connected.
 //type Presence = "online" | "offline" | "dnd" | "away" | "idle";
 type Presence = "online" | "offline";
 
@@ -73,12 +74,12 @@ function upsertPresence(userId: UserId): UserPresence {
 //feels like this should resolve to what the presence SHOULD be not do any propigation
 function setPresence(userId: UserId, event: string, presence: Presence) {
   const p = upsertPresence(userId);
-  
+
   //if there's no change, no point doing unnecessary lookups
   if (p.presence === presence) return;
   p.presence = presence;
 
-  toWatchersOfId(userId, event, presence);
+  toWatchersOfId(userId, event, { userId: userId, presence });
 }
 
 async function onSocketConnect(socketId: SocketId, userId: UserId) {
@@ -116,15 +117,16 @@ function onSocketDisconnect(socketId: SocketId) {
 
   p.activeSockets.delete(socketId);
 
+  let newPresence: Presence = p.presence;
   const isOnline = p.activeSockets.size;
 
-  let newPresence: Presence = p.presence;
-  if (!isOnline) {
-    newPresence = "offline";
-    removeWatcherList(userId);
-  }
+  if (isOnline) return;
 
+  console.log("Is user online?", isOnline);
+
+  newPresence = "offline";
   SocketEvent.newPresence(userId, newPresence);
+  removeWatcherList(userId);
 }
 
 function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {

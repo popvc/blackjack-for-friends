@@ -1,25 +1,4 @@
-//send contact request event to user
-
 import { PresenceRegistry } from "./presenceRegistry";
-
-/*
-type ContactRequest = {
-    senderId: string;
-    recipientId: string;
-}
-*/
-
-//Might move this somewhere else eventually
-/*
-enum ContactReqEvent {
-  Send = "sendContactReq",
-  Accept = "acceptContactReq",
-  Reject = "rejectContactReq",
-  Cancel = "cancelContactReq",
-}
-*/
-//okay this probably doesn't need a new event type for every action
-
 type Presence = "offline" | "online";
 type User = {
   userId: string;
@@ -37,9 +16,13 @@ enum ContactReqEvent {
   Removed = "removedContactReq",
 }
 
-//subId can be a bit confusing, it isn't refering to a watcher, but anyone subscribed to this event type
-//I think pubId might cause some issues as technically the server is emitting these events, not whoever submitted it to the server
-//but it's a bit of a white lie. This will also be true for presence updates.
+//***************************************************************************************************************
+//WARNING: This module doesn't just distribute events, it updates the state of the PresenceRegistry module.
+//***************************************************************************************************************
+
+//subId can be a bit confusing from the perspective of the PresenceRegistry, it isn't refering to a watcher, but anyone subscribed to 
+// this event type I think pubId might cause some issues as technically the server is emitting these events, not whoever submitted it 
+// to the server but it's a bit of a white lie. This will also be true for presence updates.
 // However, chat or play actions to the server in the future the emitter will properly be the publisher, and the subscriber will
 // either be the server itself or another user (where the server is just relaying the emitted message)
 // My choice of taxonomy might change when we get there, but for now this is good
