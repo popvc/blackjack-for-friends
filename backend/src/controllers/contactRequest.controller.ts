@@ -27,12 +27,12 @@ export const send = async (req: Request, res: Response) => {
     );
   }
 
-  const [valid, added] = await Promise.all([
-    ProfileService.isValidId(recipientId),
+  const [recipientName, added] = await Promise.all([
+    ProfileService.getUsername(recipientId),
     ProfileService.isContactAdded(senderId, recipientId),
   ]);
 
-  if (!valid) {
+  if (!recipientName) {
     return res.status(404).json(
       errorParamsBody("Failed to send contact request!", {
         detail: "Invalid input: contact id not found",
@@ -55,6 +55,7 @@ export const send = async (req: Request, res: Response) => {
     highId: recipientId,
     senderId: senderId,
     senderName: senderName,
+    recipientName: recipientName,
   });
 
   try {
@@ -71,13 +72,18 @@ export const send = async (req: Request, res: Response) => {
     throw e;
   }
 
-  SocketEvent.sendContactRequest(senderId, recipientId);
+  SocketEvent.sendContactRequest(
+    { userId: senderId, username: senderName },
+    { userId: recipientId, username: recipientName },
+  );
 
   res.status(201).json({
     message: "Contact request sent",
     contactRequest: {
       senderId: senderId,
       recipientId: recipientId,
+      senderName: senderName,
+      recipientName: recipientName,
     },
   });
 };

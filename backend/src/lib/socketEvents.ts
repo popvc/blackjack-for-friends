@@ -42,10 +42,15 @@ enum ContactEvent {
 // either be the server itself or another user (where the server is just relaying the emitted message)
 // My choice of taxonomy might change when we get there, but for now this is good
 
-function sendContactRequest(pubId: string, subId: string) {
-  const contactRequest = { senderId: pubId, recipientId: subId };
+function sendContactRequest(pub: User, sub: User) {
+  const contactRequest = {
+    senderId: pub.userId,
+    recipientId: sub.userId,
+    senderName: pub.username,
+    recipientName: sub.username,
+  };
 
-  UserPresence.toSocketsOfId(subId, ContactReqEvent.New, { contactRequest });
+  UserPresence.toSocketsOfId(sub.userId, ContactReqEvent.New, { contactRequest });
 }
 
 function acceptContactRequest(pub: User, sub: User): User {

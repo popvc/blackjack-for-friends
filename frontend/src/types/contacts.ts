@@ -5,8 +5,10 @@ export type ContactTab = "contacts" | "requests";
 export type ContactRequest = {
   senderId: UserId;
   recipientId: UserId;
-  //only populated by GET /contact/request/list — send/accept/reject/cancel responses and socket events don't carry it
+  //populated by GET /contact/request/list, POST /contact/request/:id/send's response, and the
+  //newContactReq socket event; not present on accept/reject/cancel responses or other socket events
   senderName?: string;
+  recipientName?: string;
 };
 
 export type Presence = "online" | "offline";

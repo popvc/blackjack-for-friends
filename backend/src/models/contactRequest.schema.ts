@@ -7,6 +7,7 @@ export interface IContactRequest {
   highId: string;
   senderId: string;
   senderName: string;
+  recipientName: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +30,10 @@ const contactRequestSchema = new mongoose.Schema<IContactRequest>(
     senderName: {
       type: String,
       require: true,
+    },
+    recipientName: {
+      type: String,
+      required: true,
     },
   },
   { timestamps: true },
