@@ -9,13 +9,14 @@ export interface LoginData {
   password: string;
 }
 
-export interface AuthProfile {
+export interface AuthUser {
   userId: string;
-  username?: string;
-  email?: string;
+  username: string;
+  email: string;
 }
 
 export interface AuthResponse {
   message: string;
-  profile: AuthProfile;
+  user: AuthUser;
 }
+

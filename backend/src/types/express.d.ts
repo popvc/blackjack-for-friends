@@ -1,9 +1,9 @@
-import {  Profile } from "../models/profile.schema.ts"
+import type { AuthUser } from "../config/authToken.ts";
 
 declare global {
     namespace Express {
         interface Request {
-            userId: string;
+            user: AuthUser;
         }
     }
 }

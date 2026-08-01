@@ -1,13 +1,27 @@
-import mongoose, { Document, type HydratedDocument } from "mongoose";
+import mongoose from "mongoose";
+
+//Need to read more about dtos and mongoose, feels like there could be a better way of doing this
+
+//unique: true handles race conditions, if I really wanted efficiency I'd handle this as part of my signin controller step, but this works fine for now
 
 // ObjectId (_id) contains information about when it was created
-// If I decide this is an issue then it would be prudent to have a separate public facing profile id
-// NanoID, more user friendly id option
-const profileSchema = new mongoose.Schema(
+// 20 character numeric id is more user friendly and doesn't provide this information, using userId now
+export interface IProfile {
+  userId: string;
+  email: string;
+  username: string;
+  password: string;
+  contactsId: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const profileSchema = new mongoose.Schema<IProfile>(
   {
     userId: {
       type: String,
       required: true,
+      unique: true,
     },
     email: {
       type: String,
@@ -23,10 +37,12 @@ const profileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    contactsId: [{ type: String }],
   },
   { timestamps: true },
 );
 
-const Profile = mongoose.model("Profile", profileSchema);
+const Profile = mongoose.model<IProfile>("Profile", profileSchema);
 
+export type ProfileDocument = mongoose.HydratedDocument<IProfile>;
 export default Profile;

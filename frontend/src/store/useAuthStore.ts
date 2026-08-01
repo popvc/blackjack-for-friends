@@ -1,57 +1,69 @@
 import axios from "axios";
+import { io, Socket } from "socket.io-client";
 import { create } from "zustand";
-import { axiosInstance } from "../config/axios";
-import type { AuthResponse, LoginData, SignupData } from "../types/auth";
+import toast from "react-hot-toast";
+import { axiosInstance, SOCKET_URL } from "../config/axios";
+import type { AuthResponse, AuthUser, LoginData, SignupData } from "../types/auth";
+import type { ServerToClientEvents } from "../types/contacts";
+import { useContactsStore } from "./useContactStore";
 
 const UNAUTHENTICATED = null;
 
 type AuthState = {
-  authUserId: string | null;
-  isCheckingAuth: boolean,
-  isSigningUp: boolean,
-  isLoggingIn: boolean,
-  isLoggingOut: boolean,
-}
+  authUser: AuthUser | null;
+  socket: Socket<ServerToClientEvents> | null;
+  isCheckingAuth: boolean;
+  isSigningUp: boolean;
+  isSigningIn: boolean;
+  isSigningOut: boolean;
+};
 
-const initialState = {
-  authUserId: UNAUTHENTICATED,
+const initialState: AuthState = {
+  authUser: UNAUTHENTICATED,
+  socket: null,
   isCheckingAuth: false,
   isSigningUp: false,
-  isLoggingIn: false,
-  isLoggingOut: false,
+  isSigningIn: false,
+  isSigningOut: false,
 };
 
 //these should have DTOs, or at least types that correspond with the backend
-type AuthActions = {
-  resetState: () => void;
+type AuthFuncts = {
   checkAuth: () => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
-  login: (data: LoginData) => Promise<void>;
-  logout: () => Promise<void>;
+  signin: (data: LoginData) => Promise<void>;
+  signout: () => Promise<void>;
+  connectSocket: () => void;
+  disconnectSocket: () => void;
 };
 
+//could also use React's HotToast, that way I don't have to worry about how I'll communicate errors
 //is this appropriate?
-function handleAxiosError(error: unknown) {
+export function handleAxiosError(error: unknown) {
   if (axios.isAxiosError(error)) {
+    toast.error(error.response?.data.message || "Server error!");
     console.log(error.response?.data.message);
   } else {
     console.error(error);
+    toast.error("Client error");
   }
 }
+//perhaps dedicated socket checking function?
 
 //seems like Tanstack Query does most of this, but better. I have a deadline, so I'll consider it another time
-export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
+export const useAuthStore = create<AuthState & AuthFuncts>()((set, get) => ({
   ...initialState,
 
-  resetState: () => set(initialState),
+  //feel like socket connections are best handled in here
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get<AuthResponse>("/auth/check");
-      set({ authUserId: res.data.profile.userId });
+      set({ authUser: res.data.user });
+      get().connectSocket();
     } catch (e: unknown) {
       handleAxiosError(e);
 
-      set({ authUserId: UNAUTHENTICATED });
+      set({ authUser: UNAUTHENTICATED });
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -60,33 +72,58 @@ export const useAuthStore = create<AuthState & AuthActions>()((set) => ({
     set({ isSigningUp: true });
     try {
       const res = await axiosInstance.post<AuthResponse>("/auth/signup", data);
-      set({ authUserId: res.data.profile.userId });
+      set({ authUser: res.data.user });
+      get().connectSocket();
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
       set({ isSigningUp: false });
     }
   },
-  login: async (data: LoginData) => {
-    set({ isLoggingIn: true });
+  signin: async (data: LoginData) => {
+    set({ isSigningIn: true });
     try {
-      const res = await axiosInstance.post<AuthResponse>("/auth/login", data);
-      set({ authUserId: res.data.profile.userId });
+      const res = await axiosInstance.post<AuthResponse>("/auth/signin", data);
+      set({ authUser: res.data.user });
+      get().connectSocket();
     } catch (e) {
       handleAxiosError(e);
     } finally {
-      set({ isLoggingIn: false });
+      set({ isSigningIn: false });
     }
   },
-  logout: async () => {
-    set({ isLoggingOut: true });
+  signout: async () => {
+    set({ isSigningOut: true });
     try {
-      await axiosInstance.post("/auth/logout");
-      set({ authUserId: UNAUTHENTICATED });
+      await axiosInstance.post("/auth/signout");
+      set({ authUser: UNAUTHENTICATED });
+      get().disconnectSocket();
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
-      set({ isLoggingOut: false });
+      set({ isSigningOut: false });
     }
+  },
+  connectSocket: () => {
+    const { authUser } = get();
+
+    //not authed, not connected already
+    if (!authUser || get().socket) return;
+
+    const socket: Socket<ServerToClientEvents> = io(SOCKET_URL, {
+      withCredentials: true,
+    });
+
+    set({ socket: socket });
+
+    useContactsStore.getState().bindSocketEvents(socket);
+  },
+  disconnectSocket: () => {
+    const socket = get().socket;
+    if (!socket) return;
+
+    useContactsStore.getState().unbindSocketEvents(socket);
+    socket.disconnect();
+    set({ socket: null });
   },
 }));

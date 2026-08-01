@@ -78,7 +78,7 @@ function SignupComponent() {
 
           <p className="text-center text-sm text-base-content/60 mt-2">
             Already have an account?{" "}
-            <Link to="/login" className="link link-primary">
+            <Link to="/signin" className="link link-primary">
               Sign in
             </Link>
           </p>

@@ -15,6 +15,13 @@ declare module '@tanstack/react-router' {
     router: typeof router
   }
 }
+//TODOS:
+//  need dedicated page for error response codes
+//  auth status when connected, redirected off signin/signup pages automatically and vice versa
+//  on the serverside, currently if a socketevent happens, it relies on an http response to update for the user taking the action.
+//However, if the user is connected on multiple sockets those other sockets on receive the updated UI. Fairly easy fix to emit to the
+//performing the action too, just not important right now.
+//  
 
 // Render the app
 const rootElement = document.getElementById('root')!

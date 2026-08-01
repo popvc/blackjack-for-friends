@@ -1,5 +1,8 @@
 {
-  "dependencies": {
-    "nanoid": "^5.1.14"
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  },
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"cd backend && bun run dev\" \"cd frontend && bun run dev\""
   }
 }

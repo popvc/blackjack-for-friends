@@ -3,13 +3,13 @@ import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import type { LoginData } from "../types/auth";
 
-export const Route = createFileRoute("/login")({
-  component: LoginComponent,
+export const Route = createFileRoute("/signin")({
+  component: SigninComponent,
 });
 
-function LoginComponent() {
+function SigninComponent() {
   const [formData, setFormData] = useState<LoginData>({ email: "", password: "" });
-  const { login, isLoggingIn } = useAuthStore();
+  const { signin, isSigningIn } = useAuthStore();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -17,8 +17,8 @@ function LoginComponent() {
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    login(formData)
-  }
+    signin(formData);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -54,12 +54,8 @@ function LoginComponent() {
               />
             </fieldset>
 
-            <button
-              type="submit"
-              className="btn btn-primary btn-block mt-2"
-              disabled={isLoggingIn}
-            >
-              {isLoggingIn ? <span className="loading loading-spinner loading-sm" /> : "Sign in"}
+            <button type="submit" className="btn btn-primary btn-block mt-2" disabled={isSigningIn}>
+              {isSigningIn ? <span className="loading loading-spinner loading-sm" /> : "Sign in"}
             </button>
           </form>
 
