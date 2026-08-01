@@ -1,23 +1,15 @@
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Toaster } from "react-hot-toast";
 import { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "../store/useAuthStore";
 
 const RootLayout = () => {
-  const authUser = useAuthStore((state) => state.authUser);
-  const connectSocket = useAuthStore((state) => state.connectSocket);
-  const disconnectSocket = useAuthStore((state) => state.disconnectSocket);
+  const { checkAuth } = useAuthStore();
 
   useEffect(() => {
-    if (authUser) {
-      connectSocket();
-    } else {
-      disconnectSocket();
-    }
-
-    return () => disconnectSocket();
-  }, [authUser, connectSocket, disconnectSocket]);
+    checkAuth();
+  }, [checkAuth]);
 
   return (
     <>
@@ -33,7 +25,7 @@ const RootLayout = () => {
         </Link>
       </div>
       <hr />
-      <Toaster/>
+      <Toaster />
       <Outlet />
       <TanStackRouterDevtools />
     </>

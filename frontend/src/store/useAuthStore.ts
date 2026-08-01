@@ -28,7 +28,7 @@ const initialState: AuthState = {
 };
 
 //these should have DTOs, or at least types that correspond with the backend
-type AuthActions = {
+type AuthFuncts = {
   checkAuth: () => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   signin: (data: LoginData) => Promise<void>;
@@ -48,15 +48,18 @@ export function handleAxiosError(error: unknown) {
     toast.error("Client error");
   }
 }
+//perhaps dedicated socket checking function?
 
 //seems like Tanstack Query does most of this, but better. I have a deadline, so I'll consider it another time
-export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
+export const useAuthStore = create<AuthState & AuthFuncts>()((set, get) => ({
   ...initialState,
 
+  //feel like socket connections are best handled in here
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get<AuthResponse>("/auth/check");
       set({ authUser: res.data.user });
+      get().connectSocket();
     } catch (e: unknown) {
       handleAxiosError(e);
 
@@ -70,6 +73,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
     try {
       const res = await axiosInstance.post<AuthResponse>("/auth/signup", data);
       set({ authUser: res.data.user });
+      get().connectSocket();
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
@@ -81,6 +85,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
     try {
       const res = await axiosInstance.post<AuthResponse>("/auth/signin", data);
       set({ authUser: res.data.user });
+      get().connectSocket();
     } catch (e) {
       handleAxiosError(e);
     } finally {
@@ -92,6 +97,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
     try {
       await axiosInstance.post("/auth/signout");
       set({ authUser: UNAUTHENTICATED });
+      get().disconnectSocket();
     } catch (e: unknown) {
       handleAxiosError(e);
     } finally {
@@ -102,7 +108,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
     const { authUser } = get();
 
     //not authed, not connected already
-    if (!authUser || get().socket?.connected) return;
+    if (!authUser || get().socket) return;
 
     const socket: Socket<ServerToClientEvents> = io(SOCKET_URL, {
       withCredentials: true,
@@ -117,7 +123,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
     if (!socket) return;
 
     useContactsStore.getState().unbindSocketEvents(socket);
-    if (socket.connected) socket.disconnect();
+    socket.disconnect();
     set({ socket: null });
   },
 }));

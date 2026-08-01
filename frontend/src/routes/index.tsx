@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect } from 'react'
 import { useAuthStore } from '../store/useAuthStore'
 import ContactsCard from '../components/contacts/ContactsCard'
 
@@ -8,11 +7,8 @@ export const Route = createFileRoute('/')({
 })
 
 function IndexComponent() {
-  const { checkAuth, signout, authUser, isCheckingAuth, isSigningOut } = useAuthStore()
+  const { signout, authUser, isCheckingAuth, isSigningOut } = useAuthStore()
 
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-base-200 p-4">

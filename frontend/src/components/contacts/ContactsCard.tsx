@@ -15,7 +15,7 @@ export default function ContactsCard() {
   }, [refreshContactsList, refreshContactReqs]);
 
   return (
-    <div className="card bg-base-100 card-border w-full max-w-sm h-[32rem]">
+    <div className="card bg-base-100 card-border w-full max-w-sm h-128">
       <div className="card-body flex flex-col gap-2 overflow-hidden">
         <ContactsTabs />
         {contactsTab === "contacts" ? <ContactsListTab /> : <RequestsTab />}

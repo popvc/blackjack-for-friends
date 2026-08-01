@@ -13,12 +13,12 @@ function SigninComponent() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };  
+  };
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    signin(formData)
-  }
+    signin(formData);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -54,11 +54,7 @@ function SigninComponent() {
               />
             </fieldset>
 
-            <button
-              type="submit"
-              className="btn btn-primary btn-block mt-2"
-              disabled={isSigningIn}
-            >
+            <button type="submit" className="btn btn-primary btn-block mt-2" disabled={isSigningIn}>
               {isSigningIn ? <span className="loading loading-spinner loading-sm" /> : "Sign in"}
             </button>
           </form>

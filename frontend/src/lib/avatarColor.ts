@@ -1,3 +1,4 @@
+//set some proper values for this eventually
 const PALETTE = [
   { bg: "bg-primary", content: "text-primary-content" },
   { bg: "bg-secondary", content: "text-secondary-content" },

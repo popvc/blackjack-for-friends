@@ -52,7 +52,7 @@ const initialState: ContactsState = {
   isReqCanceling: false,
 };
 
-type ContactsActions = {
+type ContactsFuncts = {
   refreshContactsList: () => Promise<void>;
   refreshContactReqs: () => Promise<void>;
   removeContact: (contactId: UserId) => Promise<void>;
@@ -118,7 +118,7 @@ const handleConnect = () => {
   useContactsStore.getState().refreshContactsList();
 };
 
-export const useContactsStore = create<ContactsState & ContactsActions>()((set, get) => ({
+export const useContactsStore = create<ContactsState & ContactsFuncts>()((set, get) => ({
   ...initialState,
   refreshContactsList: async () => {
     try {

@@ -128,7 +128,7 @@ export const accept = async (req: Request, res: Response) => {
   // I'm just going to throw an error for now. Worst case is, after the request is accepted
   // (which deletes it; not a problem, was going to happen anyways) then http 500 error triggers a refresh for whomever accepted it.
   // The server deletes the contact from the accepting user's DB contactslist before any update to the UI can happen. No one is the wiser.
-  // It would make more sense to return a 404, but this feels too hacky.
+  // It would make more sense to return a 404, not going to for now.
   // Fixing this still wouldn't fix the stale UI if the account was deleted or changed their name AFTER getUsername is called successfully
   // but that's what the regular contact presence refreshes are for.
   if (!senderName) {
