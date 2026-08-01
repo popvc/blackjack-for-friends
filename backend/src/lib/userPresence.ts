@@ -79,7 +79,12 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
   connectedSockets.set(socketId, userId);
 
   const p = upsertPresence(userId);
+
+  console.log("onconnect before socket", p.activeSockets.size);
+
   p.activeSockets.add(socketId);
+
+  console.log("onconnect after socket", p.activeSockets.size);
 
   const watchedList = watchersByUser.get(userId);
   if (!watchedList) {
@@ -90,12 +95,18 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
 
   if (p.presence === "offline") p.presence = "online";
 
+  console.log("onConnect presences is", p.presence);
+
   toWatchersOfId(userId, "newPresence", { userId: userId, presence: p.presence });
 }
 
 function onSocketDisconnect(socketId: SocketId) {
+  console.log("starting presence disconnected");
   const userId = connectedSockets.get(socketId);
-  if (!userId) return;
+  if (!userId) {
+    console.error("connectedSocket not found, failed to remove socket");
+    return;
+  }
 
   connectedSockets.delete(socketId);
 
@@ -105,20 +116,24 @@ function onSocketDisconnect(socketId: SocketId) {
     return;
   }
 
+  console.log("size before delete", p.activeSockets.size);
+
   p.activeSockets.delete(socketId);
 
   const isOnline = p.activeSockets.size;
 
-  let newPresence: Presence;
-  if (isOnline) {
-    newPresence = p.presence;
-  } else {
+  console.log("isOnline", isOnline);
+
+  let newPresence: Presence = p.presence;
+  if (!isOnline) {
     newPresence = "offline";
     removeWatcherList(userId);
   }
 
   if (p.presence === newPresence) return;
   p.presence = newPresence;
+
+  console.log("onDisconnect presences is", p.presence);
 
   toWatchersOfId(userId, "newPresence", { userId: userId, presence: newPresence });
 }

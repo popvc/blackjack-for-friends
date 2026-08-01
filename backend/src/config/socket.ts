@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
 import { UserPresence } from "../lib/userPresence";
 import { CORS_POLICY } from "./cors";
+import { ENV } from "./env";
 
 //unimportant for now: protobuf for faster serialization
 
@@ -27,6 +28,7 @@ const io = new Server({
 
 const engine = new Engine({
   path: "/socket.io/",
+  cors: CORS_POLICY,
 });
 
 io.bind(engine);
@@ -47,5 +49,14 @@ io.on("connection", (socket) => {
     UserPresence.onSocketDisconnect(socket.id);
   });
 });
+
+//dedicated Bun-native server for the engine - Express's own app.listen() is a separate
+//Node-compat HTTP server and can't share a port with Bun.serve()'s fetch/websocket handlers
+Bun.serve({
+  port: ENV.SOCKET_PORT,
+  ...engine.handler(),
+});
+
+console.log(`Socket.IO listening on port ${ENV.SOCKET_PORT}`);
 
 export { io };

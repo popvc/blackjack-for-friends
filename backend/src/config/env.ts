@@ -6,6 +6,7 @@ import z from "zod";
 const EnvVar = z.object({
   NODE_ENV: z.literal(["production", "development"]),
   PORT: z.literal(["3000", "3001"]),
+  SOCKET_PORT: z.literal(["3001", "3002"]),
   MONGODB_URI: z.url(),
   JWT_SECRET: z.uuidv4(),
   CLIENT_URL: z.url(),

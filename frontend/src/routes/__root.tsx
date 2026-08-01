@@ -15,6 +15,8 @@ const RootLayout = () => {
     } else {
       disconnectSocket();
     }
+
+    return () => disconnectSocket();
   }, [authUser, connectSocket, disconnectSocket]);
 
   return (

@@ -33,7 +33,7 @@ export const socketAuthMiddleware = async (
     socket.data.username = user.username;
     socket.data.email = user.email;
 
-    console.log(`SocketIO authenticated: ${user}`);
+    console.log(`SocketIO authenticated: ${user.username}`);
 
     next();
   } catch (e: unknown) {

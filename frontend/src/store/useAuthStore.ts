@@ -2,7 +2,7 @@ import axios from "axios";
 import { io, Socket } from "socket.io-client";
 import { create } from "zustand";
 import toast from "react-hot-toast";
-import { axiosInstance, BASE_URL } from "../config/axios";
+import { axiosInstance, SOCKET_URL } from "../config/axios";
 import type { AuthResponse, AuthUser, LoginData, SignupData } from "../types/auth";
 import type { ServerToClientEvents } from "../types/contacts";
 import { useContactsStore } from "./useContactStore";
@@ -104,7 +104,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
     //not authed, not connected already
     if (!authUser || get().socket?.connected) return;
 
-    const socket: Socket<ServerToClientEvents> = io(BASE_URL, {
+    const socket: Socket<ServerToClientEvents> = io(SOCKET_URL, {
       withCredentials: true,
     });
 
