@@ -20,6 +20,10 @@ enum ContactReqEvent {
 //WARNING: This module doesn't just distribute events, it updates the state of the PresenceRegistry module.
 //***************************************************************************************************************
 
+//***************************************************************************************************************
+//WARNING: This module doesn't just distribute events, it updates the state of the PresenceRegistry module.
+//***************************************************************************************************************
+
 //subId can be a bit confusing from the perspective of the PresenceRegistry, it isn't refering to a watcher, but anyone subscribed to 
 // this event type I think pubId might cause some issues as technically the server is emitting these events, not whoever submitted it 
 // to the server but it's a bit of a white lie. This will also be true for presence updates.
