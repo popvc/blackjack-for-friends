@@ -2,7 +2,7 @@ import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
 import helmet from "helmet";
 import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
-import { UserPresence } from "../lib/userPresence";
+import { PresenceRegistry } from "../lib/presenceRegistry";
 import { CORS_POLICY } from "./cors";
 import { ENV } from "./env";
 
@@ -42,11 +42,11 @@ io.use(socketAuthMiddleware);
 
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.data.username}`);
-  UserPresence.onSocketConnect(socket.id, socket.data.userId);
+  PresenceRegistry.onSocketConnect(socket.id, socket.data.userId);
 
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.data.username}`);
-    UserPresence.onSocketDisconnect(socket.id);
+    PresenceRegistry.onSocketDisconnect(socket.id);
   });
 });
 

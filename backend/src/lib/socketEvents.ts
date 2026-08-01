@@ -1,6 +1,6 @@
 //send contact request event to user
 
-import { UserPresence } from "./userPresence";
+import { PresenceRegistry } from "./presenceRegistry";
 
 /*
 type ContactRequest = {
@@ -45,14 +45,14 @@ enum ContactReqEvent {
 // My choice of taxonomy might change when we get there, but for now this is good
 
 function newPresence(pubId: string, presence: Presence) {
-  UserPresence.setPresence(pubId, ContactEvent.Presence, presence);
+  PresenceRegistry.setPresence(pubId, ContactEvent.Presence, presence);
 }
 
 function removeContact(pubId: string, subId: string) {
-  UserPresence.removeContact(pubId, subId);
+  PresenceRegistry.removeContact(pubId, subId);
 
-  UserPresence.toSocketsOfId(subId, ContactEvent.Removed, { contactId: pubId });
-  UserPresence.toSocketsOfId(pubId, ContactEvent.Removed, { contactId: subId });
+  PresenceRegistry.toSocketsOfId(subId, ContactEvent.Removed, { contactId: pubId });
+  PresenceRegistry.toSocketsOfId(pubId, ContactEvent.Removed, { contactId: subId });
 }
 
 function sendContactRequest(pub: User, sub: User) {
@@ -63,36 +63,36 @@ function sendContactRequest(pub: User, sub: User) {
     recipientName: sub.username,
   };
 
-  UserPresence.toSocketsOfId(sub.userId, ContactReqEvent.New, { contactRequest });
-  UserPresence.toSocketsOfId(pub.userId, ContactReqEvent.New, { contactRequest });
+  PresenceRegistry.toSocketsOfId(sub.userId, ContactReqEvent.New, { contactRequest });
+  PresenceRegistry.toSocketsOfId(pub.userId, ContactReqEvent.New, { contactRequest });
 }
 
 function acceptContactRequest(pub: User, sub: User) {
-  UserPresence.addContact(pub.userId, sub.userId);
+  PresenceRegistry.addContact(pub.userId, sub.userId);
 
   const contactRequest = { senderId: sub.userId, recipientId: pub.userId };
 
-  const pubPresence = UserPresence.getUserPresence(pub);
-  const subPresence = UserPresence.getUserPresence(sub);
+  const pubPresence = PresenceRegistry.getUserPresence(pub);
+  const subPresence = PresenceRegistry.getUserPresence(sub);
 
-  UserPresence.toSocketsOfId(sub.userId, ContactReqEvent.Removed, { contactRequest });
-  UserPresence.toSocketsOfId(pub.userId, ContactReqEvent.Removed, { contactRequest });
-  UserPresence.toSocketsOfId(sub.userId, ContactEvent.New, { newContact: pubPresence });
-  UserPresence.toSocketsOfId(pub.userId, ContactEvent.New, { newContact: subPresence });
+  PresenceRegistry.toSocketsOfId(sub.userId, ContactReqEvent.Removed, { contactRequest });
+  PresenceRegistry.toSocketsOfId(pub.userId, ContactReqEvent.Removed, { contactRequest });
+  PresenceRegistry.toSocketsOfId(sub.userId, ContactEvent.New, { newContact: pubPresence });
+  PresenceRegistry.toSocketsOfId(pub.userId, ContactEvent.New, { newContact: subPresence });
 }
 
 function rejectContactRequest(pubId: string, subId: string) {
   const contactRequest = { senderId: subId, recipientId: pubId };
 
-  UserPresence.toSocketsOfId(subId, ContactReqEvent.Removed, { contactRequest });
-  UserPresence.toSocketsOfId(pubId, ContactReqEvent.Removed, { contactRequest });
+  PresenceRegistry.toSocketsOfId(subId, ContactReqEvent.Removed, { contactRequest });
+  PresenceRegistry.toSocketsOfId(pubId, ContactReqEvent.Removed, { contactRequest });
 }
 
 function cancelContactRequest(pubId: string, subId: string) {
   const contactRequest = { senderId: pubId, recipientId: subId };
 
-  UserPresence.toSocketsOfId(subId, ContactReqEvent.Removed, { contactRequest });
-  UserPresence.toSocketsOfId(pubId, ContactReqEvent.Removed, { contactRequest });
+  PresenceRegistry.toSocketsOfId(subId, ContactReqEvent.Removed, { contactRequest });
+  PresenceRegistry.toSocketsOfId(pubId, ContactReqEvent.Removed, { contactRequest });
 }
 export const SocketEvent = {
   newPresence,

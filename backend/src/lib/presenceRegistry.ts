@@ -204,8 +204,8 @@ function addContact(userId: UserId, contactId: UserId) {
 }
 
 function removeContact(userId: UserId, contactId: UserId) {
-  UserPresence.removeWatcher(userId, contactId);
-  UserPresence.removeWatcher(contactId, userId);
+  PresenceRegistry.removeWatcher(userId, contactId);
+  PresenceRegistry.removeWatcher(contactId, userId);
 }
 
 function isUserConnected(userId: UserId): boolean {
@@ -217,7 +217,7 @@ function isUserConnected(userId: UserId): boolean {
   return false;
 }
 
-export const UserPresence = {
+export const PresenceRegistry = {
   onSocketConnect,
   onSocketDisconnect,
   getAllUserPresence,

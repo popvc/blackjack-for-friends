@@ -3,7 +3,7 @@ import { ContactIdDto } from "../dtos/contact.dto";
 import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
 import { ProfileService } from "../services/profile.service";
 import { SocketEvent } from "../lib/socketEvents";
-import { UserPresence } from "../lib/userPresence";
+import { PresenceRegistry } from "../lib/presenceRegistry";
 
 //NOTE: messaging should be independent from whether someone is added as a contact or not
 
@@ -63,7 +63,7 @@ export const presence = async (req: Request, res: Response) => {
 
   const contactIds = await ProfileService.getContacts(userId);
 
-  const contactsPresence = UserPresence.getAllUserPresence(contactIds);
+  const contactsPresence = PresenceRegistry.getAllUserPresence(contactIds);
 
   res
     .status(200)
