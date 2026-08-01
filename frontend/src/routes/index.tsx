@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useAuthStore } from '../store/useAuthStore'
+import ContactsCard from '../components/contacts/ContactsCard'
 
 export const Route = createFileRoute('/')({
   component: IndexComponent,
@@ -14,7 +15,7 @@ function IndexComponent() {
   }, [checkAuth])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-base-200 p-4">
       <div className="card bg-base-100 w-full max-w-sm card-border">
         <div className="card-body">
           <h2 className="card-title text-2xl">Auth Check</h2>
@@ -41,6 +42,8 @@ function IndexComponent() {
           </div>
         </div>
       </div>
+
+      {authUser !== null && <ContactsCard />}
     </div>
   )
 }
