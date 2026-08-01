@@ -18,8 +18,11 @@
 // now, I'm going to use this approach, once I start deploying separate containers for this I can take the
 // approach noted above.
 
+//need to rename this module something more descriptive like EventRouter or SocketFanout
+
 import { io } from "../config/socket";
 import { ProfileService } from "../services/profile.service";
+import { SocketEvent } from "./socketEvents";
 
 //Need to track who to send status updates to whoever their current acquaitances are
 type UserId = string;
@@ -68,11 +71,14 @@ function upsertPresence(userId: UserId): UserPresence {
 }
 
 //feels like this should resolve to what the presence SHOULD be not do any propigation
-function setPresence(userId: UserId, presence: Presence) {
+function setPresence(userId: UserId, event: string, presence: Presence) {
   const p = upsertPresence(userId);
+  
+  //if there's no change, no point doing unnecessary lookups
+  if (p.presence === presence) return;
   p.presence = presence;
 
-  toWatchersOfId(userId, "newPresence", presence);
+  toWatchersOfId(userId, event, presence);
 }
 
 async function onSocketConnect(socketId: SocketId, userId: UserId) {
@@ -80,11 +86,7 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
 
   const p = upsertPresence(userId);
 
-  console.log("onconnect before socket", p.activeSockets.size);
-
   p.activeSockets.add(socketId);
-
-  console.log("onconnect after socket", p.activeSockets.size);
 
   const watchedList = watchersByUser.get(userId);
   if (!watchedList) {
@@ -93,11 +95,7 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
     createWatcherList(userId, contactList);
   }
 
-  if (p.presence === "offline") p.presence = "online";
-
-  console.log("onConnect presences is", p.presence);
-
-  toWatchersOfId(userId, "newPresence", { userId: userId, presence: p.presence });
+  SocketEvent.newPresence(userId, "online");
 }
 
 function onSocketDisconnect(socketId: SocketId) {
@@ -116,13 +114,9 @@ function onSocketDisconnect(socketId: SocketId) {
     return;
   }
 
-  console.log("size before delete", p.activeSockets.size);
-
   p.activeSockets.delete(socketId);
 
   const isOnline = p.activeSockets.size;
-
-  console.log("isOnline", isOnline);
 
   let newPresence: Presence = p.presence;
   if (!isOnline) {
@@ -130,12 +124,7 @@ function onSocketDisconnect(socketId: SocketId) {
     removeWatcherList(userId);
   }
 
-  if (p.presence === newPresence) return;
-  p.presence = newPresence;
-
-  console.log("onDisconnect presences is", p.presence);
-
-  toWatchersOfId(userId, "newPresence", { userId: userId, presence: newPresence });
+  SocketEvent.newPresence(userId, newPresence);
 }
 
 function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
@@ -233,6 +222,7 @@ export const UserPresence = {
   onSocketDisconnect,
   getAllUserPresence,
   getUserPresence,
+  setPresence,
   removeContact,
   addContact,
   addWatcher,

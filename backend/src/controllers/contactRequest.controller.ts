@@ -137,7 +137,7 @@ export const accept = async (req: Request, res: Response) => {
     );
   }
 
-  const newContact = SocketEvent.acceptContactRequest(
+  SocketEvent.acceptContactRequest(
     { userId: recipientId, username: recipientName },
     { userId: senderId, username: senderName },
   );
@@ -148,7 +148,6 @@ export const accept = async (req: Request, res: Response) => {
       senderId: senderId,
       recipientId: recipientId,
     },
-    newContact,
   });
 };
 

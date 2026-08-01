@@ -20,19 +20,21 @@ enum ContactReqEvent {
 */
 //okay this probably doesn't need a new event type for every action
 
+type Presence = "offline" | "online";
 type User = {
   userId: string;
   username: string;
 };
 
+enum ContactEvent {
+  Presence = "newPresence",
+  New = "newContact",
+  Removed = "removedContact",
+}
+
 enum ContactReqEvent {
   New = "newContactReq",
   Removed = "removedContactReq",
-}
-
-enum ContactEvent {
-  New = "newContact",
-  Removed = "removedContact",
 }
 
 //subId can be a bit confusing, it isn't refering to a watcher, but anyone subscribed to this event type
@@ -41,6 +43,17 @@ enum ContactEvent {
 // However, chat or play actions to the server in the future the emitter will properly be the publisher, and the subscriber will
 // either be the server itself or another user (where the server is just relaying the emitted message)
 // My choice of taxonomy might change when we get there, but for now this is good
+
+function newPresence(pubId: string, presence: Presence) {
+  UserPresence.setPresence(pubId, ContactEvent.Presence, presence);
+}
+
+function removeContact(pubId: string, subId: string) {
+  UserPresence.removeContact(pubId, subId);
+
+  UserPresence.toSocketsOfId(subId, ContactEvent.Removed, { contactId: pubId });
+  UserPresence.toSocketsOfId(pubId, ContactEvent.Removed, { contactId: subId });
+}
 
 function sendContactRequest(pub: User, sub: User) {
   const contactRequest = {
@@ -51,43 +64,41 @@ function sendContactRequest(pub: User, sub: User) {
   };
 
   UserPresence.toSocketsOfId(sub.userId, ContactReqEvent.New, { contactRequest });
+  UserPresence.toSocketsOfId(pub.userId, ContactReqEvent.New, { contactRequest });
 }
 
-function acceptContactRequest(pub: User, sub: User): User {
+function acceptContactRequest(pub: User, sub: User) {
   UserPresence.addContact(pub.userId, sub.userId);
 
   const contactRequest = { senderId: sub.userId, recipientId: pub.userId };
 
-  const forSub = UserPresence.getUserPresence(pub);
-  const forPub = UserPresence.getUserPresence(sub);
+  const pubPresence = UserPresence.getUserPresence(pub);
+  const subPresence = UserPresence.getUserPresence(sub);
 
-  UserPresence.toSocketsOfId(sub.userId, ContactEvent.New, { contactRequest, newContact: forSub });
-
-  return forPub;
+  UserPresence.toSocketsOfId(sub.userId, ContactReqEvent.Removed, { contactRequest });
+  UserPresence.toSocketsOfId(pub.userId, ContactReqEvent.Removed, { contactRequest });
+  UserPresence.toSocketsOfId(sub.userId, ContactEvent.New, { newContact: pubPresence });
+  UserPresence.toSocketsOfId(pub.userId, ContactEvent.New, { newContact: subPresence });
 }
 
 function rejectContactRequest(pubId: string, subId: string) {
   const contactRequest = { senderId: subId, recipientId: pubId };
 
   UserPresence.toSocketsOfId(subId, ContactReqEvent.Removed, { contactRequest });
+  UserPresence.toSocketsOfId(pubId, ContactReqEvent.Removed, { contactRequest });
 }
 
 function cancelContactRequest(pubId: string, subId: string) {
   const contactRequest = { senderId: pubId, recipientId: subId };
 
   UserPresence.toSocketsOfId(subId, ContactReqEvent.Removed, { contactRequest });
+  UserPresence.toSocketsOfId(pubId, ContactReqEvent.Removed, { contactRequest });
 }
-
-function removeContact(pubId: string, subId: string) {
-  UserPresence.removeContact(pubId, subId);
-
-  UserPresence.toSocketsOfId(subId, ContactEvent.Removed, { contactId: pubId });
-}
-
 export const SocketEvent = {
+  newPresence,
+  removeContact,
   sendContactRequest,
   acceptContactRequest,
   rejectContactRequest,
   cancelContactRequest,
-  removeContact,
 };
