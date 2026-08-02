@@ -1,7 +1,5 @@
-import express from "express";
-
 import { createApp } from "./server";
-import { connectDB } from "./config/db";
+import { connectDevDB } from "./config/devDB";
 import { ENV } from "./config/env";
 
 const { PORT, NODE_ENV } = ENV;
@@ -16,5 +14,5 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log("Environment: " + NODE_ENV);
 
-  connectDB();
+  connectDevDB();
 });
