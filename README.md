@@ -14,32 +14,32 @@ blackjack-with-friends/
 
 ### Shared
 
-| Technology | Rationale |
-|---|---|
-| **Bun** | Faster runtime, built-in TS support without a compile step, less configuration overhead |
-| **Zod** | Validation, typings, and structured response errors |
+| Technology     | Rationale                                                                               |
+| -------------- | --------------------------------------------------------------------------------------- |
+| **Bun**        | Faster runtime, built-in TS support without a compile step, less configuration overhead |
+| **Zod**        | Validation, typings, and structured response errors                                     |
+| **TypeScript** | Full-stack type safety                                                                  |
 
 ### Backend
 
-| Technology | Rationale |
-|---|---|
-| **Express 5** | Simpler than Fastify with broader ecosystem support |
-| **MongoDB + Mongoose** | Minimal joins, infrequent transactions, easy horizontal scaling, schema flexibility for future features |
-| **Socket.IO 4** | Convenient abstraction over raw WebSockets — handles reconnection and room management without unnecessary complexity |
-| **JWT** | Stateless auth; Better Auth is a future option if scope expands |
-| **bcryptjs** | Password hashing |
-| **Helmet / CORS / cookie-parser** | Standard security and request handling middleware |
+| Technology                        | Rationale                                                                                                            |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Express 5**                     | Simpler than Fastify with broader ecosystem support                                                                  |
+| **MongoDB + Mongoose**            | Minimal joins, infrequent transactions, easy horizontal scaling, schema flexibility for future features              |
+| **Socket.IO 4**                   | Convenient abstraction over raw WebSockets — handles reconnection and room management without unnecessary complexity |
+| **JWT**                           | Stateless auth; Better Auth is a future option if scope expands                                                      |
+| **bcryptjs**                      | Password hashing                                                                                                     |
+| **Helmet / CORS / cookie-parser** | Standard security and request handling middleware                                                                    |
 
 ### Frontend
 
-| Technology | Rationale |
-|---|---|
-| **React 19 + Vite** | Familiarity, library support, fast dev server |
-| **TypeScript** | Full-stack type safety |
-| **Tailwind CSS 4 + DaisyUI 5** | Utility-first styling with pre-built accessible components |
-| **Zustand** | Lightweight global state — well-suited to auth state and socket connections |
-| **Axios** | Simplifies API calls and cookie-based auth handling |
-| **TanStack Router** *(planned)* | Better TypeScript integration than React Router; SPA architecture preferred for real-time use |
+| Technology                      | Rationale                                                                                     |
+| ------------------------------- | --------------------------------------------------------------------------------------------- |
+| **React 19 + Vite**             | Familiarity, library support, fast dev server                                                 |
+| **Tailwind CSS 4 + DaisyUI 5**  | Utility-first styling with pre-built accessible components                                    |
+| **Zustand**                     | Lightweight global state — well-suited to auth state and socket connections                   |
+| **Axios**                       | Simplifies API calls and cookie-based auth handling                                           |
+| **TanStack Router** _(planned)_ | Better TypeScript integration than React Router; SPA architecture preferred for real-time use |
 
 ## Development
 
