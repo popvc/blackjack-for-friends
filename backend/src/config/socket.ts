@@ -41,11 +41,11 @@ io.use(socketAuthMiddleware);
 //TODO: This should be split then moved to /lib eventually
 
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.data.username}`);
+  console.log(`User connected [${socket.data.username}] on socket [${socket.id}]`);
   PresenceRegistry.onSocketConnect(socket.id, socket.data.userId);
 
   socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.data.username}`);
+    console.log(`User disconnected [${socket.data.username}] on socket [${socket.id}]`);
     PresenceRegistry.onSocketDisconnect(socket.id);
   });
 });

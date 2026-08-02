@@ -1,5 +1,3 @@
-import express from "express";
-
 import { createApp } from "./server";
 import { connectDB } from "./config/db";
 import { ENV } from "./config/env";

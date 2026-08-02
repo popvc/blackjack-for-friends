@@ -1,6 +1,6 @@
-import { createApp } from "./server";
-import { connectDevDB } from "./config/devDB";
-import { ENV } from "./config/env";
+import { createApp } from "../server"; 
+import { connectDevDB } from "./devDB"; 
+import { ENV } from "../config/env"; 
 
 const { PORT, NODE_ENV } = ENV;
 

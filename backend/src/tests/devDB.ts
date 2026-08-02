@@ -1,13 +1,18 @@
 import bcrypt from "bcryptjs";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import Profile from "../models/profile.schema";
 
 //for testing purposes only
+
+//seeded emails:
 //testuser1@example.com
 //testuser2@example.com
 //testuser3@example.com
 //testuser4@example.com
+//testuser5@example.com
+
+//seeded password:
 //1234567890123456
 
 let _n = 0;
@@ -36,9 +41,12 @@ export const connectDevDB = async () => {
     mongod.stop();
   });
 
-  const mongod = await MongoMemoryServer.create();
+  // A standalone MongoMemoryServer has no oplog and can't run sessions/transactions
+  // (acceptContactRequest/removeContact use mongoose.connection.transaction), so a
+  // single-node replica set is required here instead.
+  const mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
 
-  const uri = `${mongod.getUri()}?retryWrites=false`;
+  const uri = mongod.getUri();
   console.log("mongoduri", uri);
 
   if (!mongod) {
@@ -60,5 +68,4 @@ export const connectDevDB = async () => {
     console.error("Failed to connect to DB: error:\n", e);
     process.exit(1);
   }
-
 };
