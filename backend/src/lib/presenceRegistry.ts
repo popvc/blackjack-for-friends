@@ -13,12 +13,12 @@
 // be more appropriate.
 
 //In contrast to everything I wrote above, I am going to delete the associated entry for a user when they
-// are fully disconnected. Given the scale of this application, I'd rather not have completely unaccounted for
-// memory leaks. I considered creating a max list size, but that's going to be annoying to baby sit. For
+// are fully disconnected. Given the scale of this application, I'd rather not have memory dedicated to non-existent tasks.
+//  I considered creating a max list size, but that's going to be annoying to baby sit. For
 // now, I'm going to use this approach, once I start deploying separate containers for this I can take the
 // approach noted above.
 
-//need to rename this module something more descriptive like EventRouter or SocketFanout
+//Might need to break up this at some point, it's a little awkward to emit events from in here
 
 import { io } from "../config/socket";
 import { ProfileService } from "../services/profile.service";
@@ -41,7 +41,7 @@ interface UserPresence {
 
 const presenceByUser = new Map<UserId, UserPresence>();
 const connectedSockets = new Map<SocketId, UserId>();
-//user visibility relationship cache
+//user visibility relationship cache (more of a store right now)
 const watchersByUser = new Map<UserId, Set<UserId>>();
 
 function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
@@ -148,7 +148,6 @@ function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   set.delete(contactOwnerId);
 }
 
-//possibly race condition?
 async function createWatcherList(userId: UserId, contactList: UserId[]) {
   if (!contactList.length) return;
 
@@ -164,7 +163,7 @@ function removeWatcherList(userId: UserId) {
   }
 }
 
-//Source of truth is based on in-memory watcher list, not DB
+//Reminder: source of truth is based on in-memory watcher list, not DB
 function getAllUserPresence(
   usersId: User[],
 ): { userId: UserId; username: string; presence: Presence }[] | undefined {

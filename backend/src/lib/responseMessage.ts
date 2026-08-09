@@ -2,6 +2,8 @@ import type { $ZodIssue } from "zod/v4/core";
 
 type errorResData = { message: string; errors: { detail: string; pointer: string | undefined }[] };
 
+//this and the other other responses will need some more attention eventually
+
 //type successResData<T> = { message: string, data: T}
 
 // Might use '#/pointer.../' pattern instead of 'pointer.../', I just need to double check conventions

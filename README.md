@@ -154,6 +154,6 @@ Contacts and presence already answer "who's available to play" — the next phas
 
 - Create/join game lobbies, invite contacts to a table
 - Game engine and rules
-- Presence resync on reconnect
+- Debounce presence disconnects — smoother than today's full rebuild on reconnect
 - Direct messaging between contacts, plus in-lobby chat during a game
 - Containerize and deploy (AWS or DigitalOcean)
