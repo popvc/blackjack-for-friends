@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 
-import Profile from "../models/profile.schema";
 import bcrypt from "bcryptjs";
 import { expireToken, generateAuthToken, type AuthUser } from "../config/authToken";
 import { customAlphabet } from "nanoid";
@@ -59,17 +58,7 @@ export const signup = async (req: Request, res: Response) => {
   const hashedPassword = await hashPassword(password);
   const userId = generateUserId();
 
-  //should I not just use create?
-  //await Profile.create({username, email, password: hashedPassword})
-  //Why isn't there strict type checking for the input object?
-  const newProfile = new Profile({
-    userId,
-    username,
-    email,
-    password: hashedPassword,
-  });
-
-  await newProfile.save();
+  await ProfileService.createProfile(userId, username, email, hashedPassword);
 
   const payload: AuthUser = { userId, username, email };
   res = generateAuthToken(payload, res);

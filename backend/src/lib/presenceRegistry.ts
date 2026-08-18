@@ -24,6 +24,9 @@ import { io } from "../config/socket";
 import { ProfileService } from "../services/profile.service";
 import { SocketEvent } from "./socketEvents";
 
+//TODO: ?
+//shouldn't code related to getting or setting presence be moved to the service layer?
+
 //Need to track who to send status updates to whoever their current acquaitances are
 type UserId = string;
 type SocketId = string;

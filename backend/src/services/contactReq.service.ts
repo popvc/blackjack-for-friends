@@ -65,4 +65,35 @@ async function getContactRequests(
   }));
 }
 
-export const ContactReqService = { acceptContactRequest, deleteContactRequest, getContactRequests };
+async function createContactRequest(
+  senderId: string,
+  recipientId: string,
+  senderName: string,
+  recipientName: string,
+): Promise<boolean> {
+  const newContactRequest = new ContactRequest({
+    lowId: senderId,
+    highId: recipientId,
+    senderId,
+    senderName,
+    recipientName,
+  });
+
+  try {
+    await newContactRequest.save();
+  } catch (e: unknown) {
+    if (e instanceof mongoose.mongo.MongoServerError && e.code === 11000) {
+      return false;
+    }
+    throw e;
+  }
+
+  return true;
+}
+
+export const ContactReqService = {
+  acceptContactRequest,
+  deleteContactRequest,
+  getContactRequests,
+  createContactRequest,
+};
