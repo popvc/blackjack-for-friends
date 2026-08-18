@@ -1,8 +1,6 @@
 import { type Request, type Response } from "express";
 import { ContactIdDto } from "../dtos/contact.dto";
-import ContactRequest from "../models/contactRequest.schema";
 import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
-import mongoose from "mongoose";
 import { ContactReqService } from "../services/contactReq.service";
 import { ProfileService } from "../services/profile.service";
 import { SocketEvent } from "../lib/socketEvents";
@@ -50,26 +48,20 @@ export const send = async (req: Request, res: Response) => {
     );
   }
 
-  const newContactRequest = new ContactRequest({
-    lowId: senderId,
-    highId: recipientId,
-    senderId: senderId,
-    senderName: senderName,
-    recipientName: recipientName,
-  });
+  const created = await ContactReqService.createContactRequest(
+    senderId,
+    recipientId,
+    senderName,
+    recipientName,
+  );
 
-  try {
-    await newContactRequest.save();
-  } catch (e: unknown) {
-    if (e instanceof mongoose.mongo.MongoServerError && e.code === 11000) {
-      return res.status(409).json(
-        errorParamsBody("Failed to send contact request!", {
-          detail: "Invalid input: contact request already exists between users",
-          pointer: "id",
-        }),
-      );
-    }
-    throw e;
+  if (!created) {
+    return res.status(409).json(
+      errorParamsBody("Failed to send contact request!", {
+        detail: "Invalid input: contact request already exists between users",
+        pointer: "id",
+      }),
+    );
   }
 
   SocketEvent.sendContactRequest(

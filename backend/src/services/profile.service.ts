@@ -98,6 +98,16 @@ async function getUsername(userId: string): Promise<string | undefined> {
   return user?.username;
 }
 
+async function createProfile(
+  userId: string,
+  username: string,
+  email: string,
+  password: string,
+): Promise<void> {
+  const newProfile = new Profile({ userId, username, email, password });
+  await newProfile.save();
+}
+
 export const ProfileService = {
   isUniqueEmail,
   isUniqueUsername,
@@ -108,4 +118,5 @@ export const ProfileService = {
   removeContact,
   getContacts,
   getUsername,
+  createProfile,
 };
