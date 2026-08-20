@@ -2,7 +2,7 @@
 
 Multiplayer blackjack played in real-time. Players add contacts, send invites, and join game lobbies.
 
-**What's here today is fully functional** — auth and contacts/presence run end-to-end. Clone the repo and try it yourself: `bun run tester` boots a local demo in seconds, no database setup required (see [Demo / Local Testing](#demo--local-testing)).
+**What's here today is fully functional** — auth and contacts/presence run end-to-end. Clone the repo and try it yourself: `bun run demo` boots a local demo in seconds, no database setup required (see [Demo / Local Testing](#demo--local-testing)).
 
 ## Features
 
@@ -131,7 +131,7 @@ cd frontend && bun run dev
 ### Demo / Local Testing
 
 ```bash
-bun run tester
+bun run demo
 ```
 
 Boots the backend against a disposable in-memory MongoDB replica set, pre-seeded with 5 demo accounts (`testuser1@example.com` … `testuser5@example.com`, password `1234567890123456`) — sign in immediately, no real database required. This is a local demo convenience, not an automated test suite.
