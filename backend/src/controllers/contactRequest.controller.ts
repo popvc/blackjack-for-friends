@@ -51,8 +51,6 @@ export const send = async (req: Request, res: Response) => {
   const created = await ContactReqService.createContactRequest(
     senderId,
     recipientId,
-    senderName,
-    recipientName,
   );
 
   if (!created) {
@@ -231,9 +229,9 @@ export const cancel = async (req: Request, res: Response) => {
 
 //list (for contact requests sent or received) a list of currently added contacts should be handled on login to reduce unnecessary db pings, but that's only necessary on the client end
 export const list = async (req: Request, res: Response) => {
-  const { userId } = req.user;
+  const { userId, username } = req.user;
 
-  const requests = await ContactReqService.getContactRequests(userId);
+  const requests = await ContactReqService.getContactRequests(userId, username);
 
   res.status(200).json({
     message: "Contact requests retrieved",

@@ -26,6 +26,8 @@ import { SocketEvent } from "./socketEvents";
 
 //TODO: ?
 //shouldn't code related to getting or setting presence be moved to the service layer?
+//
+//Okay presence tracking can be moved into its own module and this can be dedicated to fanout instead
 
 //Need to track who to send status updates to whoever their current acquaitances are
 type UserId = string;

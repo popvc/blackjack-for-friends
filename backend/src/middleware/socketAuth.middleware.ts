@@ -14,8 +14,6 @@ export const socketAuthMiddleware = async (
       .find((row) => row.startsWith("jwt="))
       ?.split("=")[1];
 
-    console.log("socketAuthMiddleware", token);
-
     if (!token) {
       console.log("Socket connection rejected: Auth token not found");
       return next(new Error("Unauthorized - Token not found"));
