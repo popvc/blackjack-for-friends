@@ -32,6 +32,13 @@ export const signup = async (req: Request, res: Response) => {
 
   const { username, email, password } = result.data;
 
+  //TODO:
+  //this should take a similar approach to accepting contact reqs
+  //uniqueness should be enforce my mongo and caught if it fails
+  //distinction is the need to catch if the email or username is problematic not just a blanket 'duplicate; failed'
+
+  // unique checks can be removed entirely and handled in creation service
+
   const [usernameIsUnique, emailIsUnique] = await Promise.all([
     ProfileService.isUniqueEmail(email),
     ProfileService.isUniqueUsername(username),
@@ -69,6 +76,10 @@ export const signup = async (req: Request, res: Response) => {
   });
 };
 
+//TODO: 
+// valid signin and matching token id = refresh
+// valid signin but different token id = failure (effectively a failed attempt to swap accounts)
+
 //if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
 export const signin = async (req: Request, res: Response) => {
   const checkToken = req.cookies.jwt;
@@ -80,6 +91,7 @@ export const signin = async (req: Request, res: Response) => {
   }
 
   const { email, password } = result.data;
+  
   const profile = await ProfileService.checkCredentials(email, password);
 
   //Returning only a message breaks with established convention,

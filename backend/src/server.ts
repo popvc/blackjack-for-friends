@@ -25,7 +25,6 @@ export function createApp() {
   app.use(cors(CORS_POLICY));
   app.use(cookieParser());
 
-  //I think above???
   app.use(errorHandler);
 
   app.use("/api/auth", authRoutes);
