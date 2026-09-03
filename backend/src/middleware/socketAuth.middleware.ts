@@ -9,6 +9,7 @@ export const socketAuthMiddleware = async (
   try {
     //just remember to set it everytime in the client upon connection!!!
     //const token = socket.handshake.auth.jwt;
+    //why am I doing this manually, doesn't express handle this?
     const token = socket.handshake.headers.cookie
       ?.split("; ")
       .find((row) => row.startsWith("jwt="))

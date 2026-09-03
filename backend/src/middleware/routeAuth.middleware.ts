@@ -5,7 +5,8 @@ import { verifyToken } from "../config/authToken";
 export const protectRoute = async (req: Request, res: Response, next: NextFunction) => {
   //jwt is the name of the cookie and is what we defined in utils.js as a string
   const token = req.cookies.jwt;
-  if (!token) return res.status(401).json({ message: "Unauthorized: no token received" });
+  if (typeof token !== "string")
+    return res.status(401).json({ message: "Unauthorized: no token received" });
 
   const user = await verifyToken(token);
 

@@ -50,8 +50,8 @@ io.on("connection", (socket) => {
   });
 });
 
-//dedicated Bun-native server for the engine - Express's own app.listen() is a separate
-//Node-compat HTTP server and can't share a port with Bun.serve()'s fetch/websocket handlers
+//dedicated Bun-native server for the engine, Express's own app.listen() is a separate
+//Node compat HTTP server and can't share a port with Bun.serve()'s fetch/websocket handlers
 Bun.serve({
   port: ENV.SOCKET_PORT,
   ...engine.handler(),

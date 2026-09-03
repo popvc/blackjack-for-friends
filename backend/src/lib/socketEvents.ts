@@ -27,6 +27,8 @@ enum ContactReqEvent {
 // either be the server itself or another user (where the server is just relaying the emitted message)
 // My choice of taxonomy might change when we get there, but for now this is good
 
+//mutating presenceRegistry should be done through own helper functions
+
 function newPresence(pubId: string, presence: Presence) {
   PresenceRegistry.setPresence(pubId, ContactEvent.Presence, presence);
 }

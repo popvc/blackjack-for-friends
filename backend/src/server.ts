@@ -25,10 +25,10 @@ export function createApp() {
   app.use(cors(CORS_POLICY));
   app.use(cookieParser());
 
-  app.use(errorHandler);
-
   app.use("/api/auth", authRoutes);
   app.use("/api/contact", contactRoutes);
+
+  app.use(errorHandler);
 
   return app;
 }
