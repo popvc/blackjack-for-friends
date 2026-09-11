@@ -30,7 +30,7 @@ import { SocketEvent } from "./socketEvents";
 //Okay presence tracking can be moved into its own module and this can be dedicated to fanout instead
 
 //Need to track who to send status updates to whoever their current acquaitances are
-type UserId = string;
+type UserId = string & { readonly __brand: "UserId" };
 type SocketId = string;
 type User = { userId: UserId; username: string };
 
@@ -98,7 +98,7 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
   const watchedList = watchersByUser.get(userId);
   if (!watchedList) {
     watchersByUser.set(userId, new Set<UserId>());
-    const contactList = await ProfileService.getContactIds(userId);
+    const contactList = (await ProfileService.getContactIds(userId)) as UserId[];
     createWatcherList(userId, contactList);
   }
 

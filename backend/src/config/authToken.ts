@@ -2,7 +2,7 @@ import type { Response } from "express";
 import jwt from "jsonwebtoken";
 import { ENV } from "./env";
 import ms from "ms";
-import Profile, { type IProfile } from "../models/profile.schema";
+import Profile, { type IProfile } from "../models/profile.model";
 
 const { JWT_SECRET, NODE_ENV } = ENV;
 const ONE_WEEK = "7d";

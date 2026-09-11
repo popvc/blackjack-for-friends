@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import ContactRequest from "../models/contactRequest.schema";
-import Profile from "../models/profile.schema";
+import ContactRequest from "../models/contactRequest.model";
+import Profile from "../models/profile.model";
 import { AppError } from "../lib/errors";
 
 async function acceptContactRequest(senderId: string, recipientId: string): Promise<boolean> {

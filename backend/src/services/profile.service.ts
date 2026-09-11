@@ -2,7 +2,7 @@
 //existence check (no separate precheck+mutate — avoids the TOCTOU gap `send` papers over
 
 import mongoose from "mongoose";
-import Profile from "../models/profile.schema";
+import Profile from "../models/profile.model";
 import { AppError } from "../lib/errors";
 import type { AuthUser } from "../config/authToken";
 import bcrypt from "bcryptjs";
