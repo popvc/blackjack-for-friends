@@ -3,7 +3,6 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.route.ts";
 import contactRoutes from "./routes/contact.route.ts";
-import { ENV } from "./config/env";
 import helmet from "helmet";
 import { errorHandler } from "./middleware/errorHandler.middleware";
 import { CORS_POLICY } from "./config/cors.ts";

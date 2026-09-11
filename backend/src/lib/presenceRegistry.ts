@@ -49,6 +49,7 @@ const connectedSockets = new Map<SocketId, UserId>();
 //user visibility relationship cache (more of a store right now)
 const watchersByUser = new Map<UserId, Set<UserId>>();
 
+// perhaps we can instead have this handled in socketEvents?
 function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
   const userSockets = presenceByUser.get(userId);
   if (!userSockets || !userSockets.activeSockets.size) return;
@@ -122,20 +123,19 @@ function onSocketDisconnect(socketId: SocketId) {
 
   p.activeSockets.delete(socketId);
 
-  let newPresence: Presence = p.presence;
+  //let newPresence: Presence = p.presence;
   const isOnline = p.activeSockets.size;
 
   if (isOnline) return;
 
   console.log("Is user online?", isOnline);
 
-  newPresence = "offline";
-  SocketEvent.newPresence(userId, newPresence);
+  SocketEvent.newPresence(userId, "offline");
   removeWatcherList(userId);
 }
 
 function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
-  let set = watchersByUser.get(watchedUserId);
+  const set = watchersByUser.get(watchedUserId);
   if (!set) {
     console.error("watchedUser Set not found, failed to add watcher");
     return;
@@ -145,7 +145,7 @@ function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
 }
 
 function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
-  let set = watchersByUser.get(watchedUserId);
+  const set = watchersByUser.get(watchedUserId);
   if (!set) {
     console.error("watchedUser Set not found, failed to remove watcher");
     return;
@@ -162,7 +162,7 @@ async function createWatcherList(userId: UserId, contactList: UserId[]) {
 }
 
 function removeWatcherList(userId: UserId) {
-  let result = watchersByUser.delete(userId);
+  const result = watchersByUser.delete(userId);
   if (!result) {
     console.error("watchedUser Set not found, failed to delete");
   }
@@ -214,6 +214,7 @@ function removeContact(userId: UserId, contactId: UserId) {
   PresenceRegistry.removeWatcher(contactId, userId);
 }
 
+/*
 function isUserConnected(userId: UserId): boolean {
   const userPresence = presenceByUser.get(userId);
 
@@ -222,6 +223,7 @@ function isUserConnected(userId: UserId): boolean {
   }
   return false;
 }
+*/
 
 export const PresenceRegistry = {
   onSocketConnect,

@@ -29,6 +29,10 @@ enum ContactReqEvent {
 
 //mutating presenceRegistry should be done through own helper functions
 
+//!!!!!!!!!! Currently there's no way to identify what type of event is received, it might be able to be inferred from context
+// but perhaps it would be better to send a message to help identify what actions just occurred, though this isn't important now.
+// also should these sent events be bundled together if they're going to the same person then parsed apart?
+
 function newPresence(pubId: string, presence: Presence) {
   PresenceRegistry.setPresence(pubId, ContactEvent.Presence, presence);
 }
