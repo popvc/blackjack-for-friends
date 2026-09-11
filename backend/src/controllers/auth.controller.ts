@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { expireToken, generateAuthToken, type AuthUser } from "../config/authToken";
 import { customAlphabet } from "nanoid";
-import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
+import { SignUpDto, SignInDto } from "../dtos/auth.dto";
 import { errorBodyBody, zodErrorBodyBody } from "../lib/responseMessage";
 import { ProfileService } from "../services/profile.service";
 
@@ -21,7 +21,7 @@ function generateUserId(): string {
 export const signup = async (req: Request, res: Response) => {
   //const createProfile: CreateProfile = req.body;
 
-  const result = CreateProfileDto.safeParse(req.body);
+  const result = SignUpDto.safeParse(req.body);
 
   //return properly formatted errors
   if (!result.success) {
