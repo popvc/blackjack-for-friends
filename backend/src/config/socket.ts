@@ -1,6 +1,5 @@
 import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
-import helmet from "helmet";
 import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
 import { PresenceRegistry } from "../lib/presenceRegistry";
 import { CORS_POLICY } from "./cors";
