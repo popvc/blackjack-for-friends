@@ -86,7 +86,7 @@ export const signup = async (req: Request, res: Response) => {
 export const signin = async (req: Request, res: Response) => {
   const checkToken = req.cookies.jwt;
 
-  const result = LoginProfileDto.safeParse(req.body);
+  const result = SignInDto.safeParse(req.body);
 
   if (!result.success) {
     return res.status(401).json(zodErrorBodyBody("Sign in failed!", result.error.issues));
