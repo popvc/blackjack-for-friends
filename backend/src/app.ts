@@ -5,18 +5,11 @@ import { ENV } from "./config/env";
 const { PORT, NODE_ENV } = ENV;
 
 const app = createApp();
-
-//need auto fail on failed db connect
-
 //need log about closed connections to db or other services
 
-await connectDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log("Environment: " + NODE_ENV);
-    });
-  })
-  .catch(() => {
-    console.log("Failed to connect to DB");
-  });
+await connectDB();
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log("Environment: " + NODE_ENV);
+});
