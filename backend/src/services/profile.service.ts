@@ -28,26 +28,22 @@ async function isContactAdded(userId: string, contactId: string): Promise<boolea
 }
 
 async function checkCredentials(email: string, password: string): Promise<AuthUser | null> {
-  try {
-    const profile = await Profile.findOne({ email });
+  const profile = await Profile.findOne({ email });
 
-    if (!profile || !profile.password) {
-      return null;
-    }
-
-    //return await bcrypt.compare(password, profile.password);
-    if (await bcrypt.compare(password, profile.password)) {
-      return {
-        userId: profile.userId,
-        username: profile.username,
-        email: profile.email,
-      } as AuthUser;
-    }
-
+  if (!profile || !profile.password) {
     return null;
-  } catch (e: unknown) {
-    throw `Failed to authenticate credentials:${e}`;
   }
+
+  //return await bcrypt.compare(password, profile.password);
+  if (await bcrypt.compare(password, profile.password)) {
+    return {
+      userId: profile.userId,
+      username: profile.username,
+      email: profile.email,
+    };
+  }
+
+  return null;
 }
 
 //with a duplicate-key catch, since there's no unique index backstop for a plain array)

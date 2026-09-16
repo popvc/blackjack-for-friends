@@ -4,6 +4,7 @@ import { errorParamsBody, zodErrorParamsBody } from "../lib/responseMessage";
 import { ContactReqService } from "../services/contactReq.service";
 import { ProfileService } from "../services/profile.service";
 import { SocketEvent } from "../lib/socketEvents";
+import { AppError } from "../lib/errors";
 
 export const send = async (req: Request, res: Response) => {
   const result = ContactIdDto.safeParse(req.params.id);
@@ -48,10 +49,7 @@ export const send = async (req: Request, res: Response) => {
     );
   }
 
-  const created = await ContactReqService.createContactRequest(
-    senderId,
-    recipientId,
-  );
+  const created = await ContactReqService.createContactRequest(senderId, recipientId);
 
   if (!created) {
     return res.status(409).json(
@@ -122,8 +120,10 @@ export const accept = async (req: Request, res: Response) => {
   // Fixing this still wouldn't fix the stale UI if the account was deleted or changed their name AFTER getUsername is called successfully
   // but that's what the regular contact presence refreshes are for.
   if (!senderName) {
-    throw new Error(
+    throw new AppError(
+      500,
       "ContactRequest Accept controller: could not find sender's username after successful request",
+      false,
     );
   }
 
