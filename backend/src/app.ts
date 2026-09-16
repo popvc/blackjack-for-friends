@@ -10,9 +10,13 @@ const app = createApp();
 
 //need log about closed connections to db or other services
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log("Environment: " + NODE_ENV);
-
-  connectDB();
-});
+await connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log("Environment: " + NODE_ENV);
+    });
+  })
+  .catch(() => {
+    console.log("Failed to connect to DB");
+  });
