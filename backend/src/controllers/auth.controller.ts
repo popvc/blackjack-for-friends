@@ -120,7 +120,7 @@ export const signin = async (req: Request, res: Response) => {
   });
 };
 
-export const signout = async (_: Request, res: Response) => {
+export const signout = (_: Request, res: Response) => {
   res = expireToken(res);
   res.status(200).json({ message: "Signed out" });
 };
