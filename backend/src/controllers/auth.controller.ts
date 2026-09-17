@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 
 import bcrypt from "bcryptjs";
-import { expireToken, generateAuthToken, type AuthUser } from "../config/authToken";
+import { expireToken, generateAuthToken, getAuthCookie, type AuthUser } from "../config/authToken";
 import { customAlphabet } from "nanoid";
 import { SignUpDto, SignInDto } from "../dtos/auth.dto";
 import { errorBodyBody, zodErrorBodyBody } from "../lib/responseMessage";
@@ -84,7 +84,7 @@ export const signup = async (req: Request, res: Response) => {
 
 //if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
 export const signin = async (req: Request, res: Response) => {
-  const checkToken = req.cookies.jwt;
+  const checkToken = getAuthCookie(req);
 
   const result = SignInDto.safeParse(req.body);
 

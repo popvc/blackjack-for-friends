@@ -4,7 +4,7 @@ import { Socket, type ExtendedError } from "socket.io";
 
 export const socketAuthMiddleware = async (
   socket: Socket,
-  next: (err?: ExtendedError | undefined) => void,
+  next: (err?: ExtendedError) => void,
 ) => {
   try {
     //just remember to set it everytime in the client upon connection!!!
