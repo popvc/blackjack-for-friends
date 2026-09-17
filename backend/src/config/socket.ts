@@ -39,8 +39,13 @@ io.use(socketAuthMiddleware);
 
 //TODO: This should be split then moved to /lib eventually
 
+//I need to read more about why this cannot be async, it's obvious I'm doing something wrong here
+//best guess is the presence registry shouldn't be handled from inside the socketIO scope, they should either
+//exist as equals within a larger scope or socketIO should be scoped inside presence registry (which also sounds like a bad idea)
 io.on("connection", (socket) => {
   console.log(`User connected [${socket.data.username}] on socket [${socket.id}]`);
+  //this is a design flaw, the initial socket map
+  //the connect shouldn't handle async
   PresenceRegistry.onSocketConnect(socket.id, socket.data.userId);
 
   socket.on("disconnect", () => {

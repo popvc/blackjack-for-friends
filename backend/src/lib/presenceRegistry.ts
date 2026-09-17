@@ -154,7 +154,7 @@ function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   set.delete(contactOwnerId);
 }
 
-async function createWatcherList(userId: UserId, contactList: UserId[]) {
+function createWatcherList(userId: UserId, contactList: UserId[]) {
   if (!contactList.length) return;
 
   contactList.forEach((contactId) => {
