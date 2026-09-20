@@ -1,10 +1,13 @@
 import { Server as Engine } from "@socket.io/bun-engine";
 import { Server, Socket, type DefaultEventsMap } from "socket.io";
-import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
 import { PresenceRegistry } from "../lib/presenceRegistry";
 import { CORS_POLICY } from "./cors";
 import { ENV } from "./env";
 import type { AuthUser } from "./authToken";
+import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
+
+//NOTE: SocketIO docs say that the auth only happens on the initial handshake
+//If I switch to a stateful token later, I need to figure out how to handle this
 
 //unimportant for now: protobuf for faster serialization
 
@@ -21,11 +24,13 @@ import type { AuthUser } from "./authToken";
 //heartbeat
 //maxpayload
 
-export type AppSocket = Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, AuthUser>
-type AppServer = Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, AuthUser>
+type SocketData = AuthUser;
+
+export type AppSocket = Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>;
+type AppServer = Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>;
 
 //need to enable connection state recover, not active right now
-const io = new Server<AppServer>({
+const io: AppServer = new Server({
   cors: CORS_POLICY,
 });
 
@@ -36,11 +41,12 @@ const engine = new Engine({
 
 io.bind(engine);
 
-// !!! socketIO is still going to need a cors policy for long polling even if helmet doesn't work
+// !!! socketIO might still need a cors policy for long polling 
 //Express middleware only effects HTTP requests (like long polling)
 //io.engine.use(helmet()); //I think because we're using Bun and not Node this isn't working
 
 io.use(socketAuthMiddleware);
+
 
 //TODO: This should be split then moved to /lib eventually
 
