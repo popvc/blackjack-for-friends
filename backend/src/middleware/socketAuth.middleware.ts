@@ -1,9 +1,10 @@
 //import type { Socket } from "@socket.io/bun-engine/dist/socket";
 import { verifyToken } from "../config/authToken";
-import { Socket, type ExtendedError } from "socket.io";
+import { type ExtendedError } from "socket.io";
+import type { AppSocket } from "../config/socket";
 
 export const socketAuthMiddleware = async (
-  socket: Socket,
+  socket: AppSocket,
   next: (err?: ExtendedError) => void,
 ) => {
   try {
@@ -13,6 +14,7 @@ export const socketAuthMiddleware = async (
     const token = socket.handshake.headers.cookie
       ?.split("; ")
       .find((row) => row.startsWith("jwt="))
+
       ?.split("=")[1];
 
     if (!token) {
