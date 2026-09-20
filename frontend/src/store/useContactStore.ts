@@ -100,13 +100,15 @@ const handleNewPresence = ({ userId, presence }: UserPresence) => {
   useContactsStore.setState({
     contactsList: useContactsStore
       .getState()
-      .contactsList.map((contact) => (contact.userId === userId ? { ...contact, presence } : contact)),
+      .contactsList.map((contact) =>
+        contact.userId === userId ? { ...contact, presence } : contact,
+      ),
   });
 };
 
 const handleConnect = () => {
-  useContactsStore.getState().refreshContactReqs();
-  useContactsStore.getState().refreshContactsList();
+    void useContactsStore.getState().refreshContactReqs();
+    void useContactsStore.getState().refreshContactsList();
 };
 
 export const useContactsStore = create<ContactsState & ContactsFuncts>()((set, get) => ({
