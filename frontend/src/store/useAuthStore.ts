@@ -37,12 +37,14 @@ type AuthFuncts = {
   disconnectSocket: () => void;
 };
 
-//could also use React's HotToast, that way I don't have to worry about how I'll communicate errors
-//is this appropriate?
+type ApiErrorBody = { message?: string };
+
+//this is fine if it's only use for specific errors that don't return details
+//planning on handle error details for routes like sign in and sign up once I move beyond frontend skeletons
 export function handleAxiosError(error: unknown) {
-  if (axios.isAxiosError(error)) {
-    toast.error(error.response?.data.message || "Server error!");
-    console.log(error.response?.data.message);
+  if (axios.isAxiosError<ApiErrorBody>(error)) {
+    toast.error(error.response?.data?.message || "Server error!");
+    console.log(error.response?.data?.message);
   } else {
     console.error(error);
     toast.error("Client error");
@@ -51,6 +53,9 @@ export function handleAxiosError(error: unknown) {
 //perhaps dedicated socket checking function?
 
 //seems like Tanstack Query does most of this, but better. I have a deadline, so I'll consider it another time
+
+//looking back on this, I'd actually like to do this later as it addresses some concerns I have about async behaviour
+//while creating less work for me in the long run, I think
 export const useAuthStore = create<AuthState & AuthFuncts>()((set, get) => ({
   ...initialState,
 
