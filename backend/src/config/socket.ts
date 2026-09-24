@@ -41,20 +41,23 @@ const engine = new Engine({
 
 io.bind(engine);
 
-// !!! socketIO might still need a cors policy for long polling 
+// !!! socketIO might still need a cors policy for long polling
 //Express middleware only effects HTTP requests (like long polling)
 //io.engine.use(helmet()); //I think because we're using Bun and not Node this isn't working
 
-io.use(socketAuthMiddleware);
+//middleware is guaranteed to be run before before the server start accepting events
+io.use((socket, next) => {
+  void socketAuthMiddleware(socket, next);
+});
 
-
-//TODO: This should be split then moved to /lib eventually
+// !!! should I still plan on splitting this into lib? Seems like probably not.
 
 //I need to read more about why this cannot be async, it's obvious I'm doing something wrong here
 io.on("connection", (socket) => {
   console.log(`User connected [${socket.data.username}] on socket [${socket.id}]`);
 
-  PresenceRegistry.onSocketConnect(socket.id, socket.data.userId);
+  //my understanding is the server doesn't run events until connection is run, so there is no race here
+  void PresenceRegistry.onSocketConnect(socket.id, socket.data.userId);
 
   socket.on("disconnect", () => {
     console.log(`User disconnected [${socket.data.username}] on socket [${socket.id}]`);

@@ -38,7 +38,7 @@ async function createTestProfile() {
 
 export const connectDevDB = async () => {
   process.on("exit", () => {
-    mongod.stop();
+    void mongod.stop();
   });
 
   // A standalone MongoMemoryServer has no oplog and can't run sessions/transactions
