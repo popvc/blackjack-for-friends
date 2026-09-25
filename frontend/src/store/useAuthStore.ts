@@ -44,7 +44,7 @@ type ApiErrorBody = { message?: string };
 export function handleAxiosError(error: unknown) {
   if (axios.isAxiosError<ApiErrorBody>(error)) {
     toast.error(error.response?.data?.message || "Server error!");
-    console.log(error.response?.data?.message);
+    console.log(error.response?.data);
   } else {
     console.error(error);
     toast.error("Client error");

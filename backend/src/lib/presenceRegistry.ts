@@ -56,7 +56,7 @@ function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
   if (!userSockets || !userSockets.activeSockets.size) return;
 
   for (const sockId of userSockets.activeSockets) {
-    io.to(sockId).emit(event, args);
+    io.to(sockId).emit(event, ...args);
   }
 }
 
@@ -65,7 +65,7 @@ function toWatchersOfId(userId: UserId, event: any, ...args: any[]) {
   if (!userWatchers || !watchersByUser.size) return;
 
   for (const watcherId of userWatchers) {
-    toSocketsOfId(watcherId, event, args);
+    toSocketsOfId(watcherId, event, ...args);
   }
 }
 
@@ -107,7 +107,6 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
 }
 
 function onSocketDisconnect(socketId: SocketId) {
-  console.log("starting presence disconnected");
   const userId = connectedSockets.get(socketId);
   if (!userId) {
     console.error("connectedSocket not found, failed to remove socket");
@@ -129,8 +128,6 @@ function onSocketDisconnect(socketId: SocketId) {
 
   if (isOnline) return;
 
-  console.log("Is user online?", isOnline);
-
   SocketEvent.newPresence(userId, "offline");
   removeWatcherList(userId);
 }
@@ -138,7 +135,7 @@ function onSocketDisconnect(socketId: SocketId) {
 function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   const set = watchersByUser.get(watchedUserId);
   if (!set) {
-    console.error("watchedUser Set not found, failed to add watcher");
+    console.error("addWatcher: watchedUser Set not found, failed to add watcher");
     return;
   }
 
@@ -148,7 +145,7 @@ function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
 function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
   const set = watchersByUser.get(watchedUserId);
   if (!set) {
-    console.error("watchedUser Set not found, failed to remove watcher");
+    console.error("removeWatcher: watchedUser Set not found, failed to remove watcher");
     return;
   }
   set.delete(contactOwnerId);
@@ -165,7 +162,7 @@ function createWatcherList(userId: UserId, contactList: UserId[]) {
 function removeWatcherList(userId: UserId) {
   const result = watchersByUser.delete(userId);
   if (!result) {
-    console.error("watchedUser Set not found, failed to delete");
+    console.error("removeWatcherList: watchedUser Set not found, failed to delete");
   }
 }
 
