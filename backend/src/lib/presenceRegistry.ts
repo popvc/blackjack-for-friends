@@ -56,7 +56,7 @@ function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
   if (!userSockets || !userSockets.activeSockets.size) return;
 
   for (const sockId of userSockets.activeSockets) {
-    io.to(sockId).emit(event, ...args);
+    io.to(sockId).emit(event, args);
   }
 }
 
@@ -65,7 +65,7 @@ function toWatchersOfId(userId: UserId, event: any, ...args: any[]) {
   if (!userWatchers || !watchersByUser.size) return;
 
   for (const watcherId of userWatchers) {
-    toSocketsOfId(watcherId, event, ...args);
+    toSocketsOfId(watcherId, event, args);
   }
 }
 

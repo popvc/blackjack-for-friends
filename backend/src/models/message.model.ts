@@ -1,3 +1,4 @@
+/*  in a bit
 import mongoose from "mongoose";
 
 //ids refer to user facing user ids not internal MongoDB document ids
@@ -32,3 +33,5 @@ const messageSchema = new mongoose.Schema<IMessage>(
   },
   { timestamps: true },
 );
+
+*/

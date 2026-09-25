@@ -5,6 +5,7 @@ type User = {
   username: string;
 };
 
+//I could bundle these into a single object that holds shape, I'll revisit it later
 enum ContactEvent {
   Presence = "newPresence",
   New = "newContact",
@@ -15,6 +16,7 @@ enum ContactReqEvent {
   New = "newContactReq",
   Removed = "removedContactReq",
 }
+
 
 //***************************************************************************************************************
 //WARNING: This module doesn't just distribute events, it updates the state of the PresenceRegistry module.
@@ -32,6 +34,7 @@ enum ContactReqEvent {
 //!!!!!!!!!! Currently there's no way to identify what type of event is received, it might be able to be inferred from context
 // but perhaps it would be better to send a message to help identify what actions just occurred, though this isn't important now.
 // also should these sent events be bundled together if they're going to the same person then parsed apart?
+// ordering could also be a concern, so a sequential indentifier might be required, but only if UDP slips up somehow
 
 function newPresence(pubId: string, presence: Presence) {
   PresenceRegistry.setPresence(pubId, ContactEvent.Presence, presence);

@@ -3,7 +3,7 @@
   "module": "index.ts",
   "scripts": {
     "dev": "bun --watch src/app.ts",
-    "demo": "bun src/tests/test.ts",
+    "demo": "bun src/dev/demo.ts",
     "start": "bun run src/app.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
