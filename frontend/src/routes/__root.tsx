@@ -9,7 +9,7 @@ const RootLayout = () => {
 
   //this needs to NOT run on pages that don't require authentication
   useEffect(() => {
-    checkAuth();
+    void checkAuth();
   }, [checkAuth]);
 
   return (

@@ -17,7 +17,7 @@ function SignupComponent() {
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
-    signup(formData)
+    void signup(formData)
   }
 
   return (

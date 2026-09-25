@@ -13,7 +13,7 @@ export default function SendRequestForm() {
     const trimmedId = recipientId.trim();
     if (!trimmedId) return;
 
-    sendContactReq(trimmedId);
+    void sendContactReq(trimmedId);
     setRecipientId("");
   };
 
