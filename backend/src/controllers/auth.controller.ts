@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 
 import bcrypt from "bcryptjs";
-import { expireToken, generateAuthToken, getAuthCookie, type AuthUser } from "../config/authToken";
+import { expireToken, generateAuthToken, type AuthUser } from "../config/authToken";
 import { customAlphabet } from "nanoid";
 import { SignUpDto, SignInDto } from "../dtos/auth.dto";
 import { errorBodyBody, zodErrorBodyBody } from "../lib/responseMessage";
@@ -76,16 +76,8 @@ export const signup = async (req: Request, res: Response) => {
   });
 };
 
-//TODO:
-// valid signin and matching token id = refresh
-// valid signin but different token id = failure (effectively a failed attempt to swap accounts)
-
-// should an expired token be automatically invalidated?
-
-//if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
+//acts as signin, profile switch and token refresh
 export const signin = async (req: Request, res: Response) => {
-  const checkToken = getAuthCookie(req);
-
   const result = SignInDto.safeParse(req.body);
 
   if (!result.success) {
@@ -105,11 +97,6 @@ export const signin = async (req: Request, res: Response) => {
         pointer: "#",
       }),
     );
-
-  //if user has non-expired token, prevents unnecessary token generation
-  if (checkToken && profile) {
-    return res.status(200).json({ message: "Signed in", user: profile });
-  }
 
   const payload: AuthUser = profile;
   res = generateAuthToken(payload, res);
