@@ -10,8 +10,8 @@ export default function ContactsCard() {
   const refreshContactReqs = useContactsStore((state) => state.refreshContactReqs);
 
   useEffect(() => {
-    refreshContactsList();
-    refreshContactReqs();
+    void refreshContactsList();
+    void refreshContactReqs();
   }, [refreshContactsList, refreshContactReqs]);
 
   return (

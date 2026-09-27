@@ -1,10 +1,13 @@
 import { Server as Engine } from "@socket.io/bun-engine";
-import { Server } from "socket.io";
-import helmet from "helmet";
-import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
+import { Server, Socket, type DefaultEventsMap } from "socket.io";
 import { PresenceRegistry } from "../lib/presenceRegistry";
 import { CORS_POLICY } from "./cors";
 import { ENV } from "./env";
+import type { AuthUser } from "./authToken";
+import { socketAuthMiddleware } from "../middleware/socketAuth.middleware";
+
+//NOTE: SocketIO docs say that the auth only happens on the initial handshake
+//If I switch to a stateful token later, I need to figure out how to handle this
 
 //unimportant for now: protobuf for faster serialization
 
@@ -21,8 +24,13 @@ import { ENV } from "./env";
 //heartbeat
 //maxpayload
 
+type SocketData = AuthUser;
+
+export type AppSocket = Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>;
+type AppServer = Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>;
+
 //need to enable connection state recover, not active right now
-const io = new Server({
+const io: AppServer = new Server({
   cors: CORS_POLICY,
 });
 
@@ -33,16 +41,23 @@ const engine = new Engine({
 
 io.bind(engine);
 
+// !!! socketIO might still need a cors policy for long polling
 //Express middleware only effects HTTP requests (like long polling)
 //io.engine.use(helmet()); //I think because we're using Bun and not Node this isn't working
 
-io.use(socketAuthMiddleware);
+//middleware is guaranteed to be run before before the server start accepting events
+io.use((socket, next) => {
+  void socketAuthMiddleware(socket, next);
+});
 
-//TODO: This should be split then moved to /lib eventually
+// !!! should I still plan on splitting this into lib? Seems like probably not.
 
+//I need to read more about why this cannot be async, it's obvious I'm doing something wrong here
 io.on("connection", (socket) => {
   console.log(`User connected [${socket.data.username}] on socket [${socket.id}]`);
-  PresenceRegistry.onSocketConnect(socket.id, socket.data.userId);
+
+  //my understanding is the server doesn't run events until connection is run, so there is no race here
+  void PresenceRegistry.onSocketConnect(socket.id, socket.data.userId);
 
   socket.on("disconnect", () => {
     console.log(`User disconnected [${socket.data.username}] on socket [${socket.id}]`);
@@ -50,8 +65,8 @@ io.on("connection", (socket) => {
   });
 });
 
-//dedicated Bun-native server for the engine - Express's own app.listen() is a separate
-//Node-compat HTTP server and can't share a port with Bun.serve()'s fetch/websocket handlers
+//dedicated Bun-native server for the engine, Express's own app.listen() is a separate
+//Node compat HTTP server and can't share a port with Bun.serve()'s fetch/websocket handlers
 Bun.serve({
   port: ENV.SOCKET_PORT,
   ...engine.handler(),

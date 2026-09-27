@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
-import Profile from "../models/profile.schema";
+import Profile from "../models/profile.model";
 
 //for testing purposes only
 
@@ -38,7 +38,7 @@ async function createTestProfile() {
 
 export const connectDevDB = async () => {
   process.on("exit", () => {
-    mongod.stop();
+    void mongod.stop();
   });
 
   // A standalone MongoMemoryServer has no oplog and can't run sessions/transactions

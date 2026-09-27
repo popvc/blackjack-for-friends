@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { expireToken, generateAuthToken, type AuthUser } from "../config/authToken";
 import { customAlphabet } from "nanoid";
-import { CreateProfileDto, LoginProfileDto } from "../dtos/auth.dto";
+import { SignUpDto, SignInDto } from "../dtos/auth.dto";
 import { errorBodyBody, zodErrorBodyBody } from "../lib/responseMessage";
 import { ProfileService } from "../services/profile.service";
 
@@ -21,7 +21,7 @@ function generateUserId(): string {
 export const signup = async (req: Request, res: Response) => {
   //const createProfile: CreateProfile = req.body;
 
-  const result = CreateProfileDto.safeParse(req.body);
+  const result = SignUpDto.safeParse(req.body);
 
   //return properly formatted errors
   if (!result.success) {
@@ -32,7 +32,14 @@ export const signup = async (req: Request, res: Response) => {
 
   const { username, email, password } = result.data;
 
-  const [usernameIsUnique, emailIsUnique] = await Promise.all([
+  //TODO:
+  //this should take a similar approach to accepting contact reqs
+  //uniqueness should be enforce my mongo and caught if it fails
+  //distinction is the need to catch if the email or username is problematic not just a blanket 'duplicate; failed'
+
+  // uniqueness checks can be removed entirely and handled in creation service
+
+  const [emailIsUnique, usernameIsUnique] = await Promise.all([
     ProfileService.isUniqueEmail(email),
     ProfileService.isUniqueUsername(username),
   ]);
@@ -69,17 +76,16 @@ export const signup = async (req: Request, res: Response) => {
   });
 };
 
-//if token is being sent but is still invalid, should I invalidate it? Could be a client local time issue preventing expiry
+//acts as signin, profile switch and token refresh
 export const signin = async (req: Request, res: Response) => {
-  const checkToken = req.cookies.jwt;
-
-  const result = LoginProfileDto.safeParse(req.body);
+  const result = SignInDto.safeParse(req.body);
 
   if (!result.success) {
     return res.status(401).json(zodErrorBodyBody("Sign in failed!", result.error.issues));
   }
 
   const { email, password } = result.data;
+
   const profile = await ProfileService.checkCredentials(email, password);
 
   //Returning only a message breaks with established convention,
@@ -92,11 +98,6 @@ export const signin = async (req: Request, res: Response) => {
       }),
     );
 
-  //if user has non-expired token, prevents unnecessary token generation
-  if (checkToken && profile) {
-    return res.status(200).json({ message: "Signed in", user: profile });
-  }
-
   const payload: AuthUser = profile;
   res = generateAuthToken(payload, res);
 
@@ -106,7 +107,7 @@ export const signin = async (req: Request, res: Response) => {
   });
 };
 
-export const signout = async (_: Request, res: Response) => {
+export const signout = (_: Request, res: Response) => {
   res = expireToken(res);
   res.status(200).json({ message: "Signed out" });
 };

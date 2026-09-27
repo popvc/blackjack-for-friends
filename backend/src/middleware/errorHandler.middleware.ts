@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler } from "express";
 import { AppError } from "../lib/errors";
 
+//could use a refactor I think
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const statusCode = err instanceof AppError ? err.statusCode : 500;
   const message =

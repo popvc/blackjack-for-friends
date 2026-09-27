@@ -17,7 +17,7 @@ function SigninComponent() {
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    signin(formData);
+    void signin(formData);
   };
 
   return (

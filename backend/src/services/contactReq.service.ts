@@ -1,10 +1,8 @@
 import mongoose from "mongoose";
-import ContactRequest from "../models/contactRequest.schema";
-import Profile from "../models/profile.schema";
+import ContactRequest from "../models/contactRequest.model";
+import Profile from "../models/profile.model";
 import { AppError } from "../lib/errors";
 
-//not really sure if I can break this down into smaller functions meaingfully
-//this needs socket event push
 async function acceptContactRequest(senderId: string, recipientId: string): Promise<boolean> {
   return await mongoose.connection.transaction(async (session) => {
     const remove = await ContactRequest.deleteOne({

@@ -1,8 +1,8 @@
-import type { Response } from "express";
+import type { Response, Request } from "express";
 import jwt from "jsonwebtoken";
 import { ENV } from "./env";
 import ms from "ms";
-import Profile, { type IProfile } from "../models/profile.schema";
+import Profile, { type IProfile } from "../models/profile.model";
 
 const { JWT_SECRET, NODE_ENV } = ENV;
 const ONE_WEEK = "7d";
@@ -46,9 +46,15 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
 
   if (!decoded) return null;
 
-  //checks if user still exists
+  //since we already check if a user exists on authentication, we could also add ids per token to check regularly
+  //checks if user still exists,
   const user = await Profile.findOne({ userId: decoded.userId }).select("-password");
   if (!user) return null;
 
   return decoded;
+}
+
+export function getAuthCookie(req: Request): string | undefined {
+  const token = req.cookies[TOKEN_NAME] as unknown;
+  return typeof token === "string" ? token : undefined;
 }

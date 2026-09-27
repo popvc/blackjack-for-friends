@@ -4,7 +4,7 @@ import z from "zod";
 const VALID_USERNAME_REGEX = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
 //complexity rules for password eventually
-export const CreateProfileDto = z.object({
+export const SignUpDto = z.object({
   password: z.string().min(16).max(64),
   username: z
     .stringFormat("username", VALID_USERNAME_REGEX, {
@@ -16,12 +16,12 @@ export const CreateProfileDto = z.object({
   email: z.email().toLowerCase(),
 });
 
-export const LoginProfileDto = z.object({
+export const SignInDto = z.object({
   email: z.email().toLowerCase(),
   password: z.string(),
 });
 
 //return DTOs at another date
 
-export type CreateProfileDto = z.infer<typeof CreateProfileDto>;
-export type LoginProfileDto = z.infer<typeof LoginProfileDto>;
+export type SignUpDto = z.infer<typeof SignUpDto>;
+export type SignInDto = z.infer<typeof SignInDto>;

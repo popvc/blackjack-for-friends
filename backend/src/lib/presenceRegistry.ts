@@ -30,6 +30,7 @@ import { SocketEvent } from "./socketEvents";
 //Okay presence tracking can be moved into its own module and this can be dedicated to fanout instead
 
 //Need to track who to send status updates to whoever their current acquaitances are
+//type UserId = string & { readonly __brand: "UserId" };
 type UserId = string;
 type SocketId = string;
 type User = { userId: UserId; username: string };
@@ -49,6 +50,7 @@ const connectedSockets = new Map<SocketId, UserId>();
 //user visibility relationship cache (more of a store right now)
 const watchersByUser = new Map<UserId, Set<UserId>>();
 
+// perhaps we can instead have this handled in socketEvents?
 function toSocketsOfId(userId: UserId, event: any, ...args: any[]) {
   const userSockets = presenceByUser.get(userId);
   if (!userSockets || !userSockets.activeSockets.size) return;
@@ -105,7 +107,6 @@ async function onSocketConnect(socketId: SocketId, userId: UserId) {
 }
 
 function onSocketDisconnect(socketId: SocketId) {
-  console.log("starting presence disconnected");
   const userId = connectedSockets.get(socketId);
   if (!userId) {
     console.error("connectedSocket not found, failed to remove socket");
@@ -122,22 +123,19 @@ function onSocketDisconnect(socketId: SocketId) {
 
   p.activeSockets.delete(socketId);
 
-  let newPresence: Presence = p.presence;
+  //let newPresence: Presence = p.presence;
   const isOnline = p.activeSockets.size;
 
   if (isOnline) return;
 
-  console.log("Is user online?", isOnline);
-
-  newPresence = "offline";
-  SocketEvent.newPresence(userId, newPresence);
+  SocketEvent.newPresence(userId, "offline");
   removeWatcherList(userId);
 }
 
 function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
-  let set = watchersByUser.get(watchedUserId);
+  const set = watchersByUser.get(watchedUserId);
   if (!set) {
-    console.error("watchedUser Set not found, failed to add watcher");
+    console.error("addWatcher: watchedUser Set not found, failed to add watcher");
     return;
   }
 
@@ -145,15 +143,15 @@ function addWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
 }
 
 function removeWatcher(contactOwnerId: UserId, watchedUserId: UserId) {
-  let set = watchersByUser.get(watchedUserId);
+  const set = watchersByUser.get(watchedUserId);
   if (!set) {
-    console.error("watchedUser Set not found, failed to remove watcher");
+    console.error("removeWatcher: watchedUser Set not found, failed to remove watcher");
     return;
   }
   set.delete(contactOwnerId);
 }
 
-async function createWatcherList(userId: UserId, contactList: UserId[]) {
+function createWatcherList(userId: UserId, contactList: UserId[]) {
   if (!contactList.length) return;
 
   contactList.forEach((contactId) => {
@@ -162,9 +160,9 @@ async function createWatcherList(userId: UserId, contactList: UserId[]) {
 }
 
 function removeWatcherList(userId: UserId) {
-  let result = watchersByUser.delete(userId);
+  const result = watchersByUser.delete(userId);
   if (!result) {
-    console.error("watchedUser Set not found, failed to delete");
+    console.error("removeWatcherList: watchedUser Set not found, failed to delete");
   }
 }
 
@@ -214,6 +212,7 @@ function removeContact(userId: UserId, contactId: UserId) {
   PresenceRegistry.removeWatcher(contactId, userId);
 }
 
+/*
 function isUserConnected(userId: UserId): boolean {
   const userPresence = presenceByUser.get(userId);
 
@@ -222,6 +221,7 @@ function isUserConnected(userId: UserId): boolean {
   }
   return false;
 }
+*/
 
 export const PresenceRegistry = {
   onSocketConnect,

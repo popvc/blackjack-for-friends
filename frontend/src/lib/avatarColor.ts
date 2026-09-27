@@ -14,5 +14,9 @@ export function getAvatarColors(userId: string) {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) | 0;
 
-  return PALETTE[Math.abs(hash) % PALETTE.length];
+  //need to reassure TSC it can't be undefined 
+  return PALETTE[Math.abs(hash) % PALETTE.length] as {
+    bg: string;
+    content: string;
+  };
 }

@@ -3,10 +3,10 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.route.ts";
 import contactRoutes from "./routes/contact.route.ts";
-import { ENV } from "./config/env";
 import helmet from "helmet";
 import { errorHandler } from "./middleware/errorHandler.middleware";
 import { CORS_POLICY } from "./config/cors.ts";
+import { protectRoute } from "./middleware/routeAuth.middleware.ts";
 
 export function createApp() {
   const app = express();
@@ -25,11 +25,12 @@ export function createApp() {
   app.use(cors(CORS_POLICY));
   app.use(cookieParser());
 
-  //I think above???
-  app.use(errorHandler);
-
   app.use("/api/auth", authRoutes);
+
+  app.use(protectRoute);
   app.use("/api/contact", contactRoutes);
+
+  app.use(errorHandler);
 
   return app;
 }
